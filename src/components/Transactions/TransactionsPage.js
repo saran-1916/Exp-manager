@@ -1,0 +1,106 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../../services/supabaseClient';
+import { useNavigate } from 'react-router-dom';
+
+function TransactionsPage({ userId, onEdit }) {
+  const [transactions, setTransactions] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchData() {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select(`
+          id,
+          date,
+          description,
+          debit,
+          credit,
+          category_id,
+          subcategory_id,
+          categories ( name ),
+          subcategories ( name )
+        `)
+        .eq('user_id', userId)
+        .order('date', { ascending: false });
+
+      if (error) {
+        console.error("Fetch error:", error.message);
+        return;
+      }
+
+      setTransactions(data || []);
+    }
+
+    fetchData();
+  }, [userId]);
+
+  async function handleDelete(id) {
+    const confirm = window.confirm("Are you sure you want to delete this transaction?");
+    if (!confirm) return;
+
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error("Delete error:", error.message);
+      alert("Failed to delete: " + error.message);
+    } else {
+      setTransactions(prev => prev.filter(t => t.id !== id));
+    }
+  }
+
+  function handleEdit(t) {
+    onEdit(t);
+    navigate('/form');
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-md rounded-lg border border-gray-200">
+      <h2 className="text-2xl font-bold text-black mb-6">All Transactions</h2>
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="border-b">
+            <th className="py-2 px-3">Date</th>
+            <th className="py-2 px-3">Description</th>
+            <th className="py-2 px-3">Category</th>
+            <th className="py-2 px-3">Subcategory</th>
+            <th className="py-2 px-3">Debit</th>
+            <th className="py-2 px-3">Credit</th>
+            <th className="py-2 px-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map(t => (
+            <tr key={t.id} className="border-b hover:bg-gray-50">
+              <td className="py-2 px-3">{t.date}</td>
+              <td className="py-2 px-3">{t.description}</td>
+              <td className="py-2 px-3">{t.categories?.name || '—'}</td>
+              <td className="py-2 px-3">{t.subcategories?.name || '—'}</td>
+              <td className="py-2 px-3 text-red-600">₹{t.debit}</td>
+              <td className="py-2 px-3 text-green-600">₹{t.credit}</td>
+              <td className="py-2 px-3 space-x-3">
+                <button
+                  className="text-sm text-blue-600 hover:underline"
+                  onClick={() => handleEdit(t)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="text-sm text-red-600 hover:underline"
+                  onClick={() => handleDelete(t.id)}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default TransactionsPage;
