@@ -214,9 +214,30 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
               onChange={e => setForm({ ...form, description: e.target.value })}
             />
           </div>
-
           {/* Buttons */}
           <div className="flex space-x-4">
             <button
               type="submit"
-              className="flex-1 bg-black text-white text-lg font-semibold px-6 py-3 rounded-md hover:bg
+              className="flex-1 bg-black text-white text-lg font-semibold px-6 py-3 rounded-md hover:bg-gray-800 transition"
+            >
+              {editTransaction ? "Update Transaction" : "Add Transaction"}
+            </button>
+
+            {editTransaction && (
+              <button
+                type="button"
+                className="flex-1 bg-gray-200 text-black text-lg font-semibold px-6 py-3 rounded-md hover:bg-gray-300 transition"
+                onClick={clearEdit}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default ExpenseForm;
+        
