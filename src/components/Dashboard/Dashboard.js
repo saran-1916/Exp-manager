@@ -3,6 +3,7 @@ import { supabase } from '../../services/supabaseClient';
 
 function Dashboard({ userId }) {
   const [transactions, setTransactions] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]); // Store all transactions
   const [summary, setSummary] = useState({ debit: 0, credit: 0, balance: 0 });
   const [yearFilter, setYearFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
@@ -35,6 +36,10 @@ function Dashboard({ userId }) {
       const { data, error } = await query;
       if (error) return console.error("Fetch error:", error.message);
 
+      // Store all fetched transactions
+      setAllTransactions(data || []);
+
+      // Filter for display based on viewMode
       const filtered = data.filter(t => {
         const type = t.categories?.type;
         return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
@@ -42,9 +47,14 @@ function Dashboard({ userId }) {
 
       setTransactions(filtered);
 
-      const debit = filtered.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-      const credit = filtered.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-      setSummary({ debit, credit, balance: credit - debit });
+      // Calculate summary from ALL transactions (not filtered by viewMode)
+      const totalDebit = data.reduce((acc, t) => acc + Number(t.debit || 0), 0);
+      const totalCredit = data.reduce((acc, t) => acc + Number(t.credit || 0), 0);
+      setSummary({ 
+        debit: totalDebit, 
+        credit: totalCredit, 
+        balance: totalCredit - totalDebit 
+      });
     }
 
     fetchData();
@@ -85,15 +95,17 @@ function Dashboard({ userId }) {
       <div className="grid grid-cols-3 gap-6 mb-10">
         <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
-          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
+          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit.toFixed(2)}</p>
         </div>
         <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
-          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
+          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit.toFixed(2)}</p>
         </div>
         <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
-          <p className="text-2xl font-bold text-black mt-2">₹{summary.balance}</p>
+          <p className={`text-2xl font-bold mt-2 ${summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ₹{summary.balance.toFixed(2)}
+          </p>
         </div>
       </div>
 
@@ -160,7 +172,7 @@ function Dashboard({ userId }) {
                 {categories
                   .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
                   .map(cat => (
-                    <td key={cat.name} className="py-2 px-3">₹{data[cat.name] || 0}</td>
+                    <td key={cat.name} className="py-2 px-3">₹{(data[cat.name] || 0).toFixed(2)}</td>
                   ))}
                 <td className="py-2 px-3 font-semibold text-red-600">{getTopSpender(data)}</td>
               </tr>
@@ -168,6 +180,7 @@ function Dashboard({ userId }) {
           </tbody>
         </table>
       </div>
+
       {/* Subcategory Table (vertical layout) */}
       <div>
         <h3 className="text-xl font-bold text-black mb-4">
@@ -200,7 +213,7 @@ function Dashboard({ userId }) {
                     return acc;
                   }, {})
                 ).map(month => (
-                  <td key={month} className="py-2 px-3">₹{monthData[month] || 0}</td>
+                  <td key={month} className="py-2 px-3">₹{(monthData[month] || 0).toFixed(2)}</td>
                 ))}
                 <td className="py-2 px-3 font-semibold text-green-600">
                   {getTopSpender(monthData)}
