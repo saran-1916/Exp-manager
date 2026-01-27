@@ -11,48 +11,65 @@ function Dashboard({ userId }) {
   const [viewMode, setViewMode] = useState('debit'); // 'debit' or 'credit'
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [availableMonths, setAvailableMonths] = useState([]);
+
+  // ✅ Set default filters to current year/month
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = String(now.getFullYear());
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+    setYearFilter(currentYear);
+    setMonthFilter(currentMonth);
+  }, []);
 
   useEffect(() => {
     supabase.from('categories').select('*').then(({ data }) => setCategories(data || []));
     supabase.from('subcategories').select('*').then(({ data }) => setSubcategories(data || []));
   }, []);
 
- useEffect(() => {
-  async function fetchData() {
-    let query = supabase
-      .from('transactions')
-      .select(`
-        id, date, debit, credit, category_id, subcategory_id,
-        categories ( name, type ), subcategories ( name )
-      `)
-      .eq('user_id', userId);
+  useEffect(() => {
+    async function fetchData() {
+      let query = supabase
+        .from('transactions')
+        .select(`
+          id, date, debit, credit, category_id, subcategory_id,
+          categories ( name, type ), subcategories ( name )
+        `)
+        .eq('user_id', userId);
 
-    // ✅ Year filter
-    if (yearFilter) {
-      query = query.gte('date', `${yearFilter}-01-01`).lte('date', `${yearFilter}-12-31`);
-    }
+      // ✅ Year + Month filter
+      if (yearFilter && monthFilter) {
+        const start = `${yearFilter}-${monthFilter}-01`;
+        const end = `${yearFilter}-${monthFilter}-31`;
+        query = query.gte('date', start).lte('date', end);
+      } else if (yearFilter) {
+        query = query.gte('date', `${yearFilter}-01-01`).lte('date', `${yearFilter}-12-31`);
+      }
 
-    // ✅ Month filter (only works if year is selected)
-    if (yearFilter && monthFilter) {
-      const start = `${yearFilter}-${monthFilter}-01`;
-      const end = `${yearFilter}-${monthFilter}-31`; // crude end-of-month
-      query = query.gte('date', start).lte('date', end);
-    }
+      if (categoryFilter) query = query.eq('category_id', categoryFilter);
+      if (subcategoryFilter) query = query.eq('subcategory_id', subcategoryFilter);
 
-    // ✅ Category filter
-    if (categoryFilter) query = query.eq('category_id', categoryFilter);
+      const { data, error } = await query;
+      if (error) return console.error("Fetch error:", error.message);
 
-    // ✅ Subcategory filter
-    if (subcategoryFilter) query = query.eq('subcategory_id', subcategoryFilter);
+      // ✅ Build available years/months dynamically
+      const years = new Set();
+      const months = new Set();
+      data.forEach(t => {
+        if (t.date) {
+          const [y, m] = t.date.split('-');
+          years.add(y);
+          months.add(m);
+        }
+      });
+      setAvailableYears([...years].sort());
+      setAvailableMonths([...months].sort());
 
-    const { data, error } = await query;
-    if (error) return console.error("Fetch error:", error.message);
-    
-      // ✅ Always calculate debit/credit totals from ALL fetched data
+      // ✅ Summary stays untouched
       const totalDebit = data.reduce((acc, t) => acc + Number(t.debit || 0), 0);
       const totalCredit = data.reduce((acc, t) => acc + Number(t.credit || 0), 0);
       const balance = totalCredit - totalDebit;
-
       setSummary({ debit: totalDebit, credit: totalCredit, balance });
 
       // ✅ Filter only for viewMode display
@@ -96,44 +113,65 @@ function Dashboard({ userId }) {
     return top;
   }
 
+  // ✅ Visible months logic
+  const visibleMonths = Object.keys(monthlyCategoryTotals).filter(month => {
+    if (yearFilter && monthFilter) return month === `${yearFilter}-${monthFilter}`;
+    if (yearFilter) return month.startsWith(`${yearFilter}-`);
+    return true;
+  });
+
   return (
     <div className="max-w-7xl mx-auto mt-10 p-6">
-     {/* Summary Cards */}
-<div className="grid grid-cols-3 gap-6 mb-10">
-  <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-    <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
-    <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
-  </div>
-  <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-    <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
-    <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
-  </div>
-  <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-    <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
-    <p
-      className={`text-2xl font-bold mt-2 ${
-        summary.balance >= 0 ? 'text-green-600' : 'text-red-600'
-      }`}
-    >
-      ₹{summary.balance}
-    </p>
-  </div>
-</div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-6 mb-10">
+        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
+          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
+        </div>
+        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
+          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
+        </div>
+        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
+          <p
+            className={`text-2xl font-bold mt-2 ${
+              summary.balance >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
+            ₹{summary.balance}
+          </p>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-8">
-        <select className="border px-3 py-2 rounded" value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+        <select
+          className="border px-3 py-2 rounded"
+          value={yearFilter}
+          onChange={e => setYearFilter(e.target.value)}
+        >
           <option value="">All Years</option>
-          <option value="2025">2025</option>
-          <option value="2026">2026</option>
+          {availableYears.map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
         </select>
-        <select className="border px-3 py-2 rounded" value={monthFilter} onChange={e => setMonthFilter(e.target.value)}>
+        <select
+          className="border px-3 py-2 rounded"
+          value={monthFilter}
+          onChange={e => setMonthFilter(e.target.value)}
+          disabled={!yearFilter}
+        >
           <option value="">All Months</option>
-          {['01','02','03','04','05','06','07','08','09','10','11','12'].map(m => (
+          {availableMonths.map(m => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>
-        <select className="border px-3 py-2 rounded" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+        <select
+          className="border px-3 py-2 rounded"
+          value={categoryFilter}
+          onChange={e => setCategoryFilter(e.target.value)}
+        >
           <option value="">All Categories</option>
           {categories
             .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
@@ -141,7 +179,11 @@ function Dashboard({ userId }) {
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
         </select>
-        <select className="border px-3 py-2 rounded" value={subcategoryFilter} onChange={e => setSubcategoryFilter(e.target.value)}>
+        <select
+          className="border px-3 py-2 rounded"
+          value={subcategoryFilter}
+          onChange={e => setSubcategoryFilter(e.target.value)}
+        >
           <option value="">All Subcategories</option>
           {subcategories.map(sub => (
             <option key={sub.id} value={sub.id}>{sub.name}</option>
@@ -160,10 +202,11 @@ function Dashboard({ userId }) {
           Credit View
         </button>
       </div>
-
       {/* Category Table */}
       <div className="mb-12">
-        <h3 className="text-xl font-bold text-black mb-4">Month-wise Totals by Category ({viewMode})</h3>
+        <h3 className="text-xl font-bold text-black mb-4">
+          Month-wise Totals by Category ({viewMode})
+        </h3>
         <table className="w-full text-left border-collapse bg-white shadow-md rounded-lg border border-gray-200">
           <thead>
             <tr className="border-b bg-gray-100">
@@ -177,19 +220,22 @@ function Dashboard({ userId }) {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(monthlyCategoryTotals).map(([month, data]) => (
-              <tr key={month} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-3">{month}</td>
-                {categories
-                  .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
-                  .map(cat => (
-                    <td key={cat.name} className="py-2 px-3">₹{data[cat.name] || 0}</td>
-                                     ))}
-                <td className="py-2 px-3 font-semibold text-red-600">
-                  {getTopSpender(data)}
-                </td>
-              </tr>
-            ))}
+            {visibleMonths.map(month => {
+              const data = monthlyCategoryTotals[month] || {};
+              return (
+                <tr key={month} className="border-b hover:bg-gray-50">
+                  <td className="py-2 px-3">{month}</td>
+                  {categories
+                    .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
+                    .map(cat => (
+                      <td key={cat.name} className="py-2 px-3">₹{data[cat.name] || 0}</td>
+                    ))}
+                  <td className="py-2 px-3 font-semibold text-red-600">
+                    {getTopSpender(data)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -203,13 +249,7 @@ function Dashboard({ userId }) {
           <thead>
             <tr className="border-b bg-gray-100">
               <th className="py-2 px-3">Subcategory</th>
-              {Object.keys(
-                transactions.reduce((acc, t) => {
-                  const month = t.date?.slice(0, 7);
-                  if (month) acc[month] = true;
-                  return acc;
-                }, {})
-              ).map(month => (
+              {visibleMonths.map(month => (
                 <th key={month} className="py-2 px-3">{month}</th>
               ))}
               <th className="py-2 px-3">Top Month</th>
@@ -219,13 +259,7 @@ function Dashboard({ userId }) {
             {Object.entries(subcategoryMonthTotals).map(([sub, monthData]) => (
               <tr key={sub} className="border-b hover:bg-gray-50">
                 <td className="py-2 px-3">{sub}</td>
-                {Object.keys(
-                  transactions.reduce((acc, t) => {
-                    const month = t.date?.slice(0, 7);
-                    if (month) acc[month] = true;
-                    return acc;
-                  }, {})
-                ).map(month => (
+                {visibleMonths.map(month => (
                   <td key={month} className="py-2 px-3">₹{monthData[month] || 0}</td>
                 ))}
                 <td className="py-2 px-3 font-semibold text-green-600">
