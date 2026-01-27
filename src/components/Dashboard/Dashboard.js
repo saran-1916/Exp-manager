@@ -17,24 +17,37 @@ function Dashboard({ userId }) {
     supabase.from('subcategories').select('*').then(({ data }) => setSubcategories(data || []));
   }, []);
 
-  useEffect(() => {
-    async function fetchData() {
-      let query = supabase
-        .from('transactions')
-        .select(`
-          id, date, debit, credit, category_id, subcategory_id,
-          categories ( name, type ), subcategories ( name )
-        `)
-        .eq('user_id', userId);
+ useEffect(() => {
+  async function fetchData() {
+    let query = supabase
+      .from('transactions')
+      .select(`
+        id, date, debit, credit, category_id, subcategory_id,
+        categories ( name, type ), subcategories ( name )
+      `)
+      .eq('user_id', userId);
 
-      if (yearFilter) query = query.like('date', `${yearFilter}-%`);
-      if (monthFilter) query = query.like('date', `%-${monthFilter}-%`);
-      if (categoryFilter) query = query.eq('category_id', categoryFilter);
-      if (subcategoryFilter) query = query.eq('subcategory_id', subcategoryFilter);
+    // ✅ Year filter
+    if (yearFilter) {
+      query = query.gte('date', `${yearFilter}-01-01`).lte('date', `${yearFilter}-12-31`);
+    }
 
-      const { data, error } = await query;
-      if (error) return console.error("Fetch error:", error.message);
+    // ✅ Month filter (only works if year is selected)
+    if (yearFilter && monthFilter) {
+      const start = `${yearFilter}-${monthFilter}-01`;
+      const end = `${yearFilter}-${monthFilter}-31`; // crude end-of-month
+      query = query.gte('date', start).lte('date', end);
+    }
 
+    // ✅ Category filter
+    if (categoryFilter) query = query.eq('category_id', categoryFilter);
+
+    // ✅ Subcategory filter
+    if (subcategoryFilter) query = query.eq('subcategory_id', subcategoryFilter);
+
+    const { data, error } = await query;
+    if (error) return console.error("Fetch error:", error.message);
+    
       // ✅ Always calculate debit/credit totals from ALL fetched data
       const totalDebit = data.reduce((acc, t) => acc + Number(t.debit || 0), 0);
       const totalCredit = data.reduce((acc, t) => acc + Number(t.credit || 0), 0);
