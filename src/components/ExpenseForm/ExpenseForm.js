@@ -5,6 +5,7 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
   const [form, setForm] = useState({
     date: '',
     description: '',
@@ -14,7 +15,6 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     subcategory_id: ''
   });
 
-  // Fetch categories
   useEffect(() => {
     supabase.from('categories').select('*').then(({ data, error }) => {
       if (error) console.error("Category fetch error:", error.message);
@@ -22,7 +22,6 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     });
   }, []);
 
-  // Fetch subcategories
   useEffect(() => {
     supabase.from('subcategories').select('*').then(({ data, error }) => {
       if (error) console.error("Subcategory fetch error:", error.message);
@@ -30,7 +29,6 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     });
   }, []);
 
-  // Prefill form when editing
   useEffect(() => {
     if (editTransaction) {
       setForm({
@@ -44,7 +42,6 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     }
   }, [editTransaction]);
 
-  // Handle subcategory change → auto-fill category + enforce type
   async function handleSubcategoryChange(subId) {
     setForm(prev => ({ ...prev, subcategory_id: subId }));
 
@@ -67,7 +64,6 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     }
   }
 
-  // Validation
   function validate() {
     const newErrors = {};
     if (!form.date) newErrors.date = "Date is required.";
@@ -80,7 +76,6 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     return Object.keys(newErrors).length === 0;
   }
 
-  // Submit handler
   async function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
@@ -101,9 +96,10 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
 
     if (result.error) {
       console.error("Save error:", result.error.message);
+      setSuccessMessage('');
       alert("Failed to save transaction: " + result.error.message);
     } else {
-      alert(editTransaction ? "Transaction updated!" : "Transaction added!");
+      setSuccessMessage(editTransaction ? "Transaction updated successfully!" : "Transaction added successfully!");
       setForm({
         date: '',
         description: '',
@@ -122,12 +118,19 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-100 to-white">
       <div className="w-full max-w-2xl p-10 bg-white shadow-2xl rounded-xl border border-gray-200">
-        <h2 className="text-3xl font-bold text-black mb-8 text-center">
+        <h2 className="text-3xl font-bold text-black mb-6 text-center">
           {editTransaction ? "Edit Transaction" : "Add Transaction"}
         </h2>
+
+        {/* ✅ Success Banner */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-100 border border-green-300 text-green-700 rounded-md text-center font-medium">
+            {successMessage}
+          </div>
+        )}
+
         <form className="space-y-6" onSubmit={handleSubmit}>
-          
-          {/* 1. Date */}
+          {/* Date */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Date <span className="text-red-500">*</span>
@@ -141,7 +144,7 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
             {errors.date && <p className="text-red-500 text-sm mt-1">{errors.date}</p>}
           </div>
 
-          {/* 2. Subcategory */}
+          {/* Subcategory */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Subcategory <span className="text-red-500">*</span>
@@ -159,7 +162,7 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
             {errors.subcategory_id && <p className="text-red-500 text-sm mt-1">{errors.subcategory_id}</p>}
           </div>
 
-          {/* 3. Category auto-filled */}
+          {/* Category */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Category <span className="text-red-500">*</span>
@@ -173,7 +176,7 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
             {errors.category_id && <p className="text-red-500 text-sm mt-1">{errors.category_id}</p>}
           </div>
 
-          {/* 4. Amount fields */}
+          {/* Amounts */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -202,8 +205,7 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
               {errors.credit && <p className="text-red-500 text-sm mt-1">{errors.credit}</p>}
             </div>
           </div>
-
-          {/* 5. Description */}
+          {/* Description */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
             <input
@@ -214,6 +216,7 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
               onChange={e => setForm({ ...form, description: e.target.value })}
             />
           </div>
+
           {/* Buttons */}
           <div className="flex space-x-4">
             <button
@@ -240,4 +243,3 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
 }
 
 export default ExpenseForm;
-        
