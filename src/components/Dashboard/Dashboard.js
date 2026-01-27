@@ -28,61 +28,69 @@ function Dashboard({ userId }) {
     supabase.from('subcategories').select('*').then(({ data }) => setSubcategories(data || []));
   }, []);
 
-  useEffect(() => {
-    async function fetchData() {
-      let query = supabase
-        .from('transactions')
-        .select(`
-          id, date, debit, credit, category_id, subcategory_id,
-          categories ( name, type ), subcategories ( name )
-        `)
-        .eq('user_id', userId);
+useEffect(() => {
+  async function fetchData() {
+    // ✅ Always fetch all transactions for the user first
+    const { data: allData, error } = await supabase
+      .from('transactions')
+      .select(`
+        id, date, debit, credit, category_id, subcategory_id,
+        categories ( name, type ), subcategories ( name )
+      `)
+      .eq('user_id', userId);
 
-      // ✅ Year + Month filter
-      if (yearFilter && monthFilter) {
-        const start = `${yearFilter}-${monthFilter}-01`;
-        const end = `${yearFilter}-${monthFilter}-31`;
-        query = query.gte('date', start).lte('date', end);
-      } else if (yearFilter) {
-        query = query.gte('date', `${yearFilter}-01-01`).lte('date', `${yearFilter}-12-31`);
+    if (error) return console.error("Fetch error:", error.message);
+
+    // ✅ Build available years/months from ALL data
+    const years = new Set();
+    const months = new Set();
+    allData.forEach(t => {
+      if (t.date) {
+        const [y, m] = t.date.split('-');
+        years.add(y);
+        months.add(m);
       }
+    });
+    setAvailableYears([...years].sort());
+    setAvailableMonths([...months].sort());
 
-      if (categoryFilter) query = query.eq('category_id', categoryFilter);
-      if (subcategoryFilter) query = query.eq('subcategory_id', subcategoryFilter);
+    // ✅ Apply filters on top of allData
+    let filteredData = [...allData];
 
-      const { data, error } = await query;
-      if (error) return console.error("Fetch error:", error.message);
-
-      // ✅ Build available years/months dynamically
-      const years = new Set();
-      const months = new Set();
-      data.forEach(t => {
-        if (t.date) {
-          const [y, m] = t.date.split('-');
-          years.add(y);
-          months.add(m);
-        }
-      });
-      setAvailableYears([...years].sort());
-      setAvailableMonths([...months].sort());
-
-      // ✅ Summary stays untouched
-      const totalDebit = data.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-      const totalCredit = data.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-      const balance = totalCredit - totalDebit;
-      setSummary({ debit: totalDebit, credit: totalCredit, balance });
-
-      // ✅ Filter only for viewMode display
-      const filtered = data.filter(t => {
-        const type = t.categories?.type;
-        return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
-      });
-
-      setTransactions(filtered);
+    if (yearFilter && monthFilter) {
+      const start = `${yearFilter}-${monthFilter}-01`;
+      const end = `${yearFilter}-${monthFilter}-31`;
+      filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
+    } else if (yearFilter) {
+      const start = `${yearFilter}-01-01`;
+      const end = `${yearFilter}-12-31`;
+      filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
     }
 
-    fetchData();
-  }, [userId, yearFilter, monthFilter, categoryFilter, subcategoryFilter, viewMode]);
+    if (categoryFilter) {
+      filteredData = filteredData.filter(t => t.category_id === categoryFilter);
+    }
+    if (subcategoryFilter) {
+      filteredData = filteredData.filter(t => t.subcategory_id === subcategoryFilter);
+    }
+
+    // ✅ Summary stays untouched
+    const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
+    const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
+    const balance = totalCredit - totalDebit;
+    setSummary({ debit: totalDebit, credit: totalCredit, balance });
+
+    // ✅ Apply viewMode filter last
+    const viewFiltered = filteredData.filter(t => {
+      const type = t.categories?.type;
+      return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
+    });
+
+    setTransactions(viewFiltered);
+  }
+
+  fetchData();
+}, [userId, yearFilter, monthFilter, categoryFilter, subcategoryFilter, viewMode]);
 
   // Group by month and category/subcategory
   const monthlyCategoryTotals = {};
