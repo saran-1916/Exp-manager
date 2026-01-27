@@ -71,28 +71,13 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // ✅ Validation checks
-    if (!form.date) {
-      alert("Please select a date.");
-      return;
-    }
-    if (!form.subcategory_id) {
-      alert("Please select a subcategory.");
-      return;
-    }
-    if (!form.category_id) {
-      alert("Category is missing. Please reselect subcategory.");
-      return;
-    }
+    if (!form.date) return alert("Please select a date.");
+    if (!form.subcategory_id) return alert("Please select a subcategory.");
+    if (!form.category_id) return alert("Category is missing. Please reselect subcategory.");
+
     const categoryType = categories.find(c => c.id === form.category_id)?.type;
-    if (categoryType === 'Expense' && !form.debit) {
-      alert("Please enter a debit amount for this expense.");
-      return;
-    }
-    if (categoryType === 'Income' && !form.credit) {
-      alert("Please enter a credit amount for this income.");
-      return;
-    }
+    if (categoryType === 'Expense' && !form.debit) return alert("Please enter a debit amount.");
+    if (categoryType === 'Income' && !form.credit) return alert("Please enter a credit amount.");
 
     const cleanedForm = {
       ...form,
@@ -103,14 +88,9 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
 
     let result;
     if (editTransaction) {
-      result = await supabase
-        .from('transactions')
-        .update(cleanedForm)
-        .eq('id', editTransaction.id);
+      result = await supabase.from('transactions').update(cleanedForm).eq('id', editTransaction.id);
     } else {
-      result = await supabase
-        .from('transactions')
-        .insert([cleanedForm]);
+      result = await supabase.from('transactions').insert([cleanedForm]);
     }
 
     if (result.error) {
@@ -133,61 +113,28 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
   const categoryType = categories.find(c => c.id === form.category_id)?.type;
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-8 bg-white shadow-xl rounded-xl border border-gray-300">
-      <h2 className="text-3xl font-bold text-black mb-8 text-center">
+    <div className="max-w-2xl mx-auto mt-10 p-8 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 shadow-xl rounded-xl border border-gray-300">
+      <h2 className="text-3xl font-extrabold text-indigo-700 mb-8 text-center">
         {editTransaction ? "Edit Transaction" : "Add Transaction"}
       </h2>
       <form className="space-y-6" onSubmit={handleSubmit}>
+        
+        {/* 1. Date */}
         <div>
-          <label className="label">Date</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
           <input
             type="date"
-            className="input text-lg"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             value={form.date}
             onChange={e => setForm({ ...form, date: e.target.value })}
           />
         </div>
 
+        {/* 2. Subcategory */}
         <div>
-          <label className="label">Description</label>
-          <input
-            type="text"
-            className="input text-lg"
-            placeholder="Description"
-            value={form.description}
-            onChange={e => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-
-        {/* Amount fields with enforcement */}
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="label">Debit ₹</label>
-            <input
-              type="number"
-              className="input text-lg"
-              value={form.debit}
-              onChange={e => setForm({ ...form, debit: e.target.value })}
-              disabled={categoryType !== 'Expense'}
-            />
-          </div>
-          <div>
-            <label className="label">Credit ₹</label>
-            <input
-              type="number"
-              className="input text-lg"
-              value={form.credit}
-              onChange={e => setForm({ ...form, credit: e.target.value })}
-              disabled={categoryType !== 'Income'}
-            />
-          </div>
-        </div>
-
-        {/* Subcategory first */}
-        <div>
-          <label className="label">Subcategory</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Subcategory</label>
           <select
-            className="input text-lg"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             value={form.subcategory_id}
             onChange={e => handleSubcategoryChange(e.target.value)}
           >
@@ -198,21 +145,58 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
           </select>
         </div>
 
-        {/* Category auto-filled */}
+        {/* 3. Category auto-filled */}
         <div>
-          <label className="label">Category</label>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
           <input
             type="text"
-            className="input text-lg bg-gray-100"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-lg bg-gray-100"
             value={categories.find(c => c.id === form.category_id)?.name || ''}
             readOnly
           />
         </div>
 
+        {/* 4. Amount fields */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Debit ₹</label>
+            <input
+              type="number"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              value={form.debit}
+              onChange={e => setForm({ ...form, debit: e.target.value })}
+              disabled={categoryType !== 'Expense'}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Credit ₹</label>
+            <input
+              type="number"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={form.credit}
+              onChange={e => setForm({ ...form, credit: e.target.value })}
+              disabled={categoryType !== 'Income'}
+            />
+          </div>
+        </div>
+
+        {/* 5. Description */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+          <input
+            type="text"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            placeholder="Description"
+            value={form.description}
+            onChange={e => setForm({ ...form, description: e.target.value })}
+          />
+        </div>
+
+        {/* Buttons */}
         <div className="flex space-x-4">
           <button
             type="submit"
-            className="flex-1 bg-black text-white text-lg font-semibold px-6 py-3 rounded-md hover:bg-gray-800 transition"
+            className="flex-1 bg-indigo-600 text-white text-lg font-semibold px-6 py-3 rounded-md hover:bg-indigo-700 transition"
           >
             {editTransaction ? "Update Transaction" : "Add Transaction"}
           </button>
