@@ -3,7 +3,6 @@ import { supabase } from '../../services/supabaseClient';
 
 function Dashboard({ userId }) {
   const [transactions, setTransactions] = useState([]);
-  const [allTransactions, setAllTransactions] = useState([]); // Store all transactions
   const [summary, setSummary] = useState({ debit: 0, credit: 0, balance: 0 });
   const [yearFilter, setYearFilter] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
@@ -36,25 +35,20 @@ function Dashboard({ userId }) {
       const { data, error } = await query;
       if (error) return console.error("Fetch error:", error.message);
 
-      // Store all fetched transactions
-      setAllTransactions(data || []);
+      // ✅ Always calculate debit/credit totals from ALL fetched data
+      const totalDebit = data.reduce((acc, t) => acc + Number(t.debit || 0), 0);
+      const totalCredit = data.reduce((acc, t) => acc + Number(t.credit || 0), 0);
+      const balance = totalCredit - totalDebit;
 
-      // Filter for display based on viewMode
+      setSummary({ debit: totalDebit, credit: totalCredit, balance });
+
+      // ✅ Filter only for viewMode display
       const filtered = data.filter(t => {
         const type = t.categories?.type;
         return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
       });
 
       setTransactions(filtered);
-
-      // Calculate summary from ALL transactions (not filtered by viewMode)
-      const totalDebit = data.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-      const totalCredit = data.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-      setSummary({ 
-        debit: totalDebit, 
-        credit: totalCredit, 
-        balance: totalCredit - totalDebit 
-      });
     }
 
     fetchData();
@@ -95,17 +89,15 @@ function Dashboard({ userId }) {
       <div className="grid grid-cols-3 gap-6 mb-10">
         <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
-          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
         </div>
         <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
-          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
         </div>
         <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
-          <p className={`text-2xl font-bold mt-2 ${summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ₹{summary.balance.toFixed(2)}
-          </p>
+          <p className="text-2xl font-bold text-black mt-2">₹{summary.balance}</p>
         </div>
       </div>
 
@@ -172,9 +164,11 @@ function Dashboard({ userId }) {
                 {categories
                   .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
                   .map(cat => (
-                    <td key={cat.name} className="py-2 px-3">₹{(data[cat.name] || 0).toFixed(2)}</td>
-                  ))}
-                <td className="py-2 px-3 font-semibold text-red-600">{getTopSpender(data)}</td>
+                    <td key={cat.name} className="py-2 px-3">₹{data[cat.name] || 0}</td>
+                                     ))}
+                <td className="py-2 px-3 font-semibold text-red-600">
+                  {getTopSpender(data)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -213,7 +207,7 @@ function Dashboard({ userId }) {
                     return acc;
                   }, {})
                 ).map(month => (
-                  <td key={month} className="py-2 px-3">₹{(monthData[month] || 0).toFixed(2)}</td>
+                  <td key={month} className="py-2 px-3">₹{monthData[month] || 0}</td>
                 ))}
                 <td className="py-2 px-3 font-semibold text-green-600">
                   {getTopSpender(monthData)}
