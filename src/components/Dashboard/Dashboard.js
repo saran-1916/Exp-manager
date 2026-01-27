@@ -85,21 +85,27 @@ function Dashboard({ userId }) {
 
   return (
     <div className="max-w-7xl mx-auto mt-10 p-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-10">
-        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
-          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
-        </div>
-        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
-          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
-        </div>
-        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
-          <p className="text-2xl font-bold text-black mt-2">₹{summary.balance}</p>
-        </div>
-      </div>
+     {/* Summary Cards */}
+<div className="grid grid-cols-3 gap-6 mb-10">
+  <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+    <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
+    <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
+  </div>
+  <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+    <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
+    <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
+  </div>
+  <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+    <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
+    <p
+      className={`text-2xl font-bold mt-2 ${
+        summary.balance >= 0 ? 'text-green-600' : 'text-red-600'
+      }`}
+    >
+      ₹{summary.balance}
+    </p>
+  </div>
+</div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-8">
