@@ -6,7 +6,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import TransactionsPage from './components/Transactions/TransactionsPage';
 import { supabase } from './services/supabaseClient';
 
-function NavBar({ onLogout }) {
+function NavBar({ user, onLogout }) {
   return (
     <nav className="bg-black text-white px-8 py-4 shadow-md flex justify-between items-center">
       <div className="text-xl font-bold tracking-wide">ExpManager</div>
@@ -22,7 +22,7 @@ function NavBar({ onLogout }) {
           Dashboard
         </NavLink>
         <NavLink
-          to="/transactions"
+          to="/form"
           className={({ isActive }) =>
             `text-lg font-medium transition ${
               isActive ? 'text-gray-300 border-b-2 border-gray-300 pb-1' : 'hover:text-gray-400'
@@ -31,23 +31,29 @@ function NavBar({ onLogout }) {
         >
           Add Transaction
         </NavLink>
-        <button
-          onClick={onLogout}
-          className="text-lg font-medium transition hover:text-gray-400"
-        >
-          Transactions
-        </NavLink>
         <NavLink
-          to="/form"
+          to="/transactions"
           className={({ isActive }) =>
             `text-lg font-medium transition ${
               isActive ? 'text-gray-300 border-b-2 border-gray-300 pb-1' : 'hover:text-gray-400'
             }`
           }
         >
+          Transactions
+        </NavLink>
+        <button
+          onClick={onLogout}
+          className="text-lg font-medium transition hover:text-gray-400"
+        >
           Logout
         </button>
       </div>
+      {/* ✅ Show who is logged in */}
+      {user && (
+        <div className="ml-6 text-sm text-gray-300">
+          Logged in as: <span className="font-semibold">{user.email}</span>
+        </div>
+      )}
     </nav>
   );
 }
@@ -69,7 +75,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar onLogout={handleLogout} />
+      <NavBar user={user} onLogout={handleLogout} />
 
       {/* Page Content */}
       <div className="p-8">
@@ -80,12 +86,6 @@ function App() {
           {/* Dashboard */}
           <Route path="/dashboard" element={<Dashboard />} />
 
-          {/* Transactions Page */}
-          <Route
-            path="/transactions"
-            element={<TransactionsPage onEdit={setEditTransaction} />}
-          />
-
           {/* Add Transaction */}
           <Route
             path="/form"
@@ -95,6 +95,12 @@ function App() {
                 clearEdit={() => setEditTransaction(null)}
               />
             }
+          />
+
+          {/* Transactions Page */}
+          <Route
+            path="/transactions"
+            element={<TransactionsPage onEdit={setEditTransaction} />}
           />
         </Routes>
       </div>
