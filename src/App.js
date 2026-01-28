@@ -10,6 +10,7 @@ import { supabase } from './services/supabaseClient';
 function AppContent() {
   const [user, setUser] = useState(null);
   const [editTransaction, setEditTransaction] = useState(null);
+  const [collapsed, setCollapsed] = useState(false); // ✅ sidebar toggle
   const navigate = useNavigate();
 
   async function handleLogout() {
@@ -24,13 +25,19 @@ function AppContent() {
 
   return (
     <div className="flex">
-      {/* ✅ Sidebar on the left */}
-      <Sidebar user={user} onLogout={handleLogout} />
+      {/* ✅ Sidebar */}
+      <Sidebar
+        user={user}
+        onLogout={handleLogout}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
 
-      {/* ✅ Main content area */}
-      <div className="ml-64 w-full p-8 bg-gray-100 min-h-screen">
+      {/* ✅ Main content shifts based on sidebar width */}
+      <div
+        className={`${collapsed ? 'ml-20' : 'ml-64'} w-full p-8 bg-gray-100 min-h-screen transition-all duration-300`}
+      >
         <Routes>
-          {/* ✅ Default route → Dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route
