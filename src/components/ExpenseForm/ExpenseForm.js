@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
-function ExpenseForm({ userId, editTransaction, clearEdit }) {
+function ExpenseForm({ editTransaction, clearEdit }) {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [errors, setErrors] = useState({});
