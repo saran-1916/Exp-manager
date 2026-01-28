@@ -29,6 +29,12 @@ function NavBar({ onLogout }) {
             }`
           }
         >
+     Add Transaction
+        </NavLink>
+        <button
+          onClick={onLogout}
+          className="text-lg font-medium transition hover:text-gray-400"
+        >
           Transactions
         </NavLink>
         <NavLink
@@ -39,12 +45,7 @@ function NavBar({ onLogout }) {
             }`
           }
         >
-          Add Transaction
-        </NavLink>
-        <button
-          onClick={onLogout}
-          className="text-lg font-medium transition hover:text-gray-400"
-        >
+     
           Logout
         </button>
       </div>
