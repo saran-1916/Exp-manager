@@ -1,38 +1,42 @@
-.App {
-  text-align: center;
+import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
+import Dashboard from './components/Dashboard/Dashboard';
+import TransactionsPage from './components/Transactions/TransactionsPage';
+import ExpenseForm from './components/ExpenseForm/ExpenseForm';
+
+function App() {
+  return (
+    <Router>
+      <div className="App">
+        {/* Navigation Bar */}
+        <nav className="navbar">
+          <ul>
+            <li>
+              <NavLink to="/" end className={({ isActive }) => isActive ? "active" : ""}>
+                Dashboard
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/transactions" className={({ isActive }) => isActive ? "active" : ""}>
+                Transactions
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/form" className={({ isActive }) => isActive ? "active" : ""}>
+                Add Transaction
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
+
+        {/* Routes */}
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/form" element={<ExpenseForm />} />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
+export default App;
