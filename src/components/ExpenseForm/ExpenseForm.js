@@ -76,43 +76,50 @@ function ExpenseForm({ userId, editTransaction, clearEdit }) {
     return Object.keys(newErrors).length === 0;
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!validate()) return;
+ async function handleSubmit(e) {
+  e.preventDefault();
+  if (!validate()) return;
 
-    const cleanedForm = {
-      ...form,
-      debit: form.debit === '' ? null : Number(form.debit),
-      credit: form.credit === '' ? null : Number(form.credit),
-      user_id: userId
-    };
-
-    let result;
-    if (editTransaction) {
-      result = await supabase.from('transactions').update(cleanedForm).eq('id', editTransaction.id);
-    } else {
-      result = await supabase.from('transactions').insert([cleanedForm]);
-    }
-
-    if (result.error) {
-      console.error("Save error:", result.error.message);
-      setSuccessMessage('');
-      alert("Failed to save transaction: " + result.error.message);
-    } else {
-      setSuccessMessage(editTransaction ? "Transaction updated successfully!" : "Transaction added successfully!");
-      setForm({
-        date: '',
-        description: '',
-        debit: '',
-        credit: '',
-        category_id: '',
-        subcategory_id: ''
-      });
-      clearEdit && clearEdit();
-      setErrors({});
-    }
+  // ✅ Get the logged-in user directly from Supabase Auth
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error("User not authenticated");
+    alert("You must be logged in to save a transaction.");
+    return;
   }
 
+  const cleanedForm = {
+    ...form,
+    debit: form.debit === '' ? null : Number(form.debit),
+    credit: form.credit === '' ? null : Number(form.credit),
+    user_id: user.id  // ✅ This matches auth.users.id
+  };
+
+  let result;
+  if (editTransaction) {
+    result = await supabase.from('transactions').update(cleanedForm).eq('id', editTransaction.id);
+  } else {
+    result = await supabase.from('transactions').insert([cleanedForm]);
+  }
+
+  if (result.error) {
+    console.error("Save error:", result.error.message);
+    setSuccessMessage('');
+    alert("Failed to save transaction: " + result.error.message);
+  } else {
+    setSuccessMessage(editTransaction ? "Transaction updated successfully!" : "Transaction added successfully!");
+    setForm({
+      date: '',
+      description: '',
+      debit: '',
+      credit: '',
+      category_id: '',
+      subcategory_id: ''
+    });
+    clearEdit && clearEdit();
+    setErrors({});
+  }
+}
   const categoryType = categories.find(c => c.id === form.category_id)?.type;
 
   return (
