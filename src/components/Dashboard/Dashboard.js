@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
 function Dashboard() {
+  const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ debit: 0, credit: 0, balance: 0 });
   const [yearFilter, setYearFilter] = useState('');
@@ -13,6 +14,19 @@ function Dashboard() {
   const [subcategories, setSubcategories] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
   const [availableMonths, setAvailableMonths] = useState([]);
+
+  // ✅ Get logged-in user once
+  useEffect(() => {
+    async function getUser() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Auth error:", error.message);
+      } else {
+        setUser(user);
+      }
+    }
+    getUser();
+  }, []);
 
   // ✅ Set default filters to current year/month
   useEffect(() => {
@@ -28,69 +42,70 @@ function Dashboard() {
     supabase.from('subcategories').select('*').then(({ data }) => setSubcategories(data || []));
   }, []);
 
-useEffect(() => {
-  async function fetchData() {
-    // ✅ Always fetch all transactions for the user first
-    const { data: allData, error } = await supabase
-      .from('transactions')
-      .select(`
-        id, date, debit, credit, category_id, subcategory_id,
-        categories ( name, type ), subcategories ( name )
-      `)
-      .eq('user_id', userId);
+  useEffect(() => {
+    async function fetchData() {
+      if (!user) return; // wait until user is loaded
 
-    if (error) return console.error("Fetch error:", error.message);
+      const { data: allData, error } = await supabase
+        .from('transactions')
+        .select(`
+          id, date, debit, credit, category_id, subcategory_id,
+          categories ( name, type ), subcategories ( name )
+        `)
+        .eq('user_id', user.id);
 
-    // ✅ Build available years/months from ALL data
-    const years = new Set();
-    const months = new Set();
-    allData.forEach(t => {
-      if (t.date) {
-        const [y, m] = t.date.split('-');
-        years.add(y);
-        months.add(m);
+      if (error) return console.error("Fetch error:", error.message);
+
+      // ✅ Build available years/months from ALL data
+      const years = new Set();
+      const months = new Set();
+      allData.forEach(t => {
+        if (t.date) {
+          const [y, m] = t.date.split('-');
+          years.add(y);
+          months.add(m);
+        }
+      });
+      setAvailableYears([...years].sort());
+      setAvailableMonths([...months].sort());
+
+      // ✅ Apply filters on top of allData
+      let filteredData = [...allData];
+
+      if (yearFilter && monthFilter) {
+        const start = `${yearFilter}-${monthFilter}-01`;
+        const end = `${yearFilter}-${monthFilter}-31`;
+        filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
+      } else if (yearFilter) {
+        const start = `${yearFilter}-01-01`;
+        const end = `${yearFilter}-12-31`;
+        filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
       }
-    });
-    setAvailableYears([...years].sort());
-    setAvailableMonths([...months].sort());
 
-    // ✅ Apply filters on top of allData
-    let filteredData = [...allData];
+      if (categoryFilter) {
+        filteredData = filteredData.filter(t => t.category_id === categoryFilter);
+      }
+      if (subcategoryFilter) {
+        filteredData = filteredData.filter(t => t.subcategory_id === subcategoryFilter);
+      }
 
-    if (yearFilter && monthFilter) {
-      const start = `${yearFilter}-${monthFilter}-01`;
-      const end = `${yearFilter}-${monthFilter}-31`;
-      filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
-    } else if (yearFilter) {
-      const start = `${yearFilter}-01-01`;
-      const end = `${yearFilter}-12-31`;
-      filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
+      // ✅ Summary
+      const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
+      const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
+      const balance = totalCredit - totalDebit;
+      setSummary({ debit: totalDebit, credit: totalCredit, balance });
+
+      // ✅ Apply viewMode filter last
+      const viewFiltered = filteredData.filter(t => {
+        const type = t.categories?.type;
+        return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
+      });
+
+      setTransactions(viewFiltered);
     }
 
-    if (categoryFilter) {
-      filteredData = filteredData.filter(t => t.category_id === categoryFilter);
-    }
-    if (subcategoryFilter) {
-      filteredData = filteredData.filter(t => t.subcategory_id === subcategoryFilter);
-    }
-
-    // ✅ Summary stays untouched
-    const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-    const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-    const balance = totalCredit - totalDebit;
-    setSummary({ debit: totalDebit, credit: totalCredit, balance });
-
-    // ✅ Apply viewMode filter last
-    const viewFiltered = filteredData.filter(t => {
-      const type = t.categories?.type;
-      return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
-    });
-
-    setTransactions(viewFiltered);
-  }
-
-  fetchData();
-}, [userId, yearFilter, monthFilter, categoryFilter, subcategoryFilter, viewMode]);
+    fetchData();
+  }, [user, yearFilter, monthFilter, categoryFilter, subcategoryFilter, viewMode]);
 
   // Group by month and category/subcategory
   const monthlyCategoryTotals = {};
@@ -197,7 +212,7 @@ useEffect(() => {
             <option key={sub.id} value={sub.id}>{sub.name}</option>
           ))}
         </select>
-        <button
+                <button
           className={`px-4 py-2 rounded font-semibold ${viewMode === 'debit' ? 'bg-red-600 text-white' : 'bg-gray-200 text-black'}`}
           onClick={() => setViewMode('debit')}
         >
@@ -210,6 +225,7 @@ useEffect(() => {
           Credit View
         </button>
       </div>
+
       {/* Category Table */}
       <div className="mb-12">
         <h3 className="text-xl font-bold text-black mb-4">
@@ -264,17 +280,20 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(subcategoryMonthTotals).map(([sub, monthData]) => (
-              <tr key={sub} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-3">{sub}</td>
-                {visibleMonths.map(month => (
-                  <td key={month} className="py-2 px-3">₹{monthData[month] || 0}</td>
-                ))}
-                <td className="py-2 px-3 font-semibold text-green-600">
-                  {getTopSpender(monthData)}
-                </td>
-              </tr>
-            ))}
+            {Object.keys(subcategoryMonthTotals).map(sub => {
+              const data = subcategoryMonthTotals[sub] || {};
+              return (
+                <tr key={sub} className="border-b hover:bg-gray-50">
+                  <td className="py-2 px-3">{sub}</td>
+                  {visibleMonths.map(month => (
+                    <td key={month} className="py-2 px-3">₹{data[month] || 0}</td>
+                  ))}
+                  <td className="py-2 px-3 font-semibold text-green-600">
+                    {getTopSpender(data)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
