@@ -20,7 +20,7 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
 
   return (
     <div
-      className={`h-screen ${collapsed ? 'w-20' : 'w-56'} bg-black text-white flex flex-col shadow-lg transition-all duration-300`}
+      className={`h-screen ${collapsed ? 'w-20' : 'w-56'} bg-gradient-to-b from-black to-gray-900 text-white flex flex-col shadow-xl transition-all duration-300 relative`}
     >
       {/* Header with collapse toggle */}
       <div className="p-4 border-b border-gray-800 flex justify-between items-center">
@@ -36,12 +36,12 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-3">
+      <nav className="flex-1 p-4 space-y-3 relative">
         {navItems.map(({ name, path, icon: Icon }) => (
           <Link
             key={name}
             to={path}
-            className={`flex items-center space-x-3 px-2 py-2 rounded-md transition-colors ${
+            className={`group relative flex items-center space-x-3 px-2 py-2 rounded-md transition-colors ${
               location.pathname === path
                 ? 'bg-gray-800 text-yellow-400'
                 : 'hover:text-yellow-400'
@@ -49,18 +49,28 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
           >
             <Icon className="h-5 w-5" />
             {!collapsed && <span className="text-sm font-medium">{name}</span>}
+            {collapsed && (
+              <span className="absolute left-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                {name}
+              </span>
+            )}
           </Link>
         ))}
       </nav>
 
       {/* Logout */}
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-gray-800 relative">
         <button
           onClick={onLogout}
-          className="flex items-center space-x-3 px-2 py-2 hover:text-red-400 transition-colors"
+          className="group relative flex items-center space-x-3 px-2 py-2 hover:text-red-400 transition-colors"
         >
           <ArrowRightOnRectangleIcon className="h-5 w-5" />
           {!collapsed && <span className="text-sm font-medium">Logout</span>}
+          {collapsed && (
+            <span className="absolute left-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+              Logout
+            </span>
+          )}
         </button>
       </div>
     </div>
