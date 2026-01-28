@@ -8,22 +8,34 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 
-const navItems = [
-  { name: 'Dashboard', path: '/', icon: HomeIcon },
-  { name: 'Add Expense', path: '/add', icon: PlusCircleIcon },
-  { name: 'Reports', path: '/reports', icon: ClipboardDocumentListIcon },
-  { name: 'Profile', path: '/profile', icon: UserCircleIcon }
-];
-
-const Sidebar = () => {
+const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
   const location = useLocation();
 
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: HomeIcon },
+    { name: 'Add Expense', path: '/form', icon: PlusCircleIcon },
+    { name: 'Transactions', path: '/transactions', icon: ClipboardDocumentListIcon },
+    { name: 'Profile', path: '/profile', icon: UserCircleIcon }
+  ];
+
   return (
-    <div className="h-screen w-56 bg-black text-white flex flex-col shadow-lg">
-      <div className="p-4 border-b border-gray-800">
-        <h1 className="text-xl font-bold tracking-wide">Expense Manager</h1>
+    <div
+      className={`h-screen ${collapsed ? 'w-20' : 'w-56'} bg-black text-white flex flex-col shadow-lg transition-all duration-300`}
+    >
+      {/* Header with collapse toggle */}
+      <div className="p-4 border-b border-gray-800 flex justify-between items-center">
+        {!collapsed && (
+          <h1 className="text-xl font-bold tracking-wide">Expense Manager</h1>
+        )}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-gray-400 hover:text-yellow-400 transition-colors"
+        >
+          {collapsed ? '➡️' : '⬅️'}
+        </button>
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-3">
         {navItems.map(({ name, path, icon: Icon }) => (
           <Link
@@ -36,15 +48,19 @@ const Sidebar = () => {
             }`}
           >
             <Icon className="h-5 w-5" />
-            <span className="text-sm font-medium">{name}</span>
+            {!collapsed && <span className="text-sm font-medium">{name}</span>}
           </Link>
         ))}
       </nav>
 
+      {/* Logout */}
       <div className="p-4 border-t border-gray-800">
-        <button className="flex items-center space-x-3 px-2 py-2 hover:text-red-400 transition-colors">
+        <button
+          onClick={onLogout}
+          className="flex items-center space-x-3 px-2 py-2 hover:text-red-400 transition-colors"
+        >
           <ArrowRightOnRectangleIcon className="h-5 w-5" />
-          <span className="text-sm font-medium">Logout</span>
+          {!collapsed && <span className="text-sm font-medium">Logout</span>}
         </button>
       </div>
     </div>
