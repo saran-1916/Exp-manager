@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
-function Dashboard({ userId }) {
+function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ debit: 0, credit: 0, balance: 0 });
   const [yearFilter, setYearFilter] = useState('');
