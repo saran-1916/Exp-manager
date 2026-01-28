@@ -1,27 +1,38 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';   // ✅ add this
 import { supabase } from '../../services/supabaseClient';
 
 function Auth({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();   // ✅ initialize navigate
 
   async function handleLogin(e) {
     e.preventDefault();
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    else setUser(data.user);
+    if (error) {
+      alert(error.message);
+    } else {
+      setUser(data.user);
+      navigate('/dashboard');   // ✅ redirect immediately after login
+    }
   }
 
   async function handleSignup(e) {
     e.preventDefault();
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) alert(error.message);
-    else setUser(data.user);
+    if (error) {
+      alert(error.message);
+    } else {
+      setUser(data.user);
+      navigate('/dashboard');   // ✅ redirect immediately after signup
+    }
   }
 
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
+    navigate('/login');   // ✅ go back to login page after logout
   }
 
   return (
