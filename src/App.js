@@ -13,7 +13,7 @@ function AppContent() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Persist session so user stays logged in after refresh
+  // ✅ Persist session
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -24,16 +24,20 @@ function AppContent() {
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
-    navigate('/'); // goes back to Auth
+    navigate('/login'); // ✅ go to login page
   }
 
   if (!user) {
-    return <Auth setUser={setUser} />;
+    return (
+      <Routes>
+        <Route path="/login" element={<Auth setUser={setUser} />} />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    );
   }
 
   return (
     <div className="flex">
-      {/* ✅ Sidebar */}
       <Sidebar
         user={user}
         onLogout={handleLogout}
@@ -41,7 +45,6 @@ function AppContent() {
         setCollapsed={setCollapsed}
       />
 
-      {/* ✅ Main content shifts based on sidebar width */}
       <div
         className={`${collapsed ? 'ml-20' : 'ml-56'} w-full p-8 bg-gray-100 min-h-screen transition-all duration-300`}
       >
