@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Auth from './components/Auth/Auth';
 import ExpenseForm from './components/ExpenseForm/ExpenseForm';
@@ -10,13 +10,21 @@ import { supabase } from './services/supabaseClient';
 function AppContent() {
   const [user, setUser] = useState(null);
   const [editTransaction, setEditTransaction] = useState(null);
-  const [collapsed, setCollapsed] = useState(false); // ✅ sidebar toggle
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+
+  // ✅ Persist session so user stays logged in after refresh
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
-    navigate('/');
+    navigate('/'); // goes back to Auth
   }
 
   if (!user) {
@@ -35,7 +43,7 @@ function AppContent() {
 
       {/* ✅ Main content shifts based on sidebar width */}
       <div
-        className={`${collapsed ? 'ml-20' : 'ml-64'} w-full p-8 bg-gray-100 min-h-screen transition-all duration-300`}
+        className={`${collapsed ? 'ml-20' : 'ml-56'} w-full p-8 bg-gray-100 min-h-screen transition-all duration-300`}
       >
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" />} />
