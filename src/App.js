@@ -15,18 +15,17 @@ import Sidebar from './components/Sidebar/Sidebar';
 import { supabase } from './services/supabaseClient';
 
 function AppContent() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(undefined); // ✅ undefined until session checked
   const [editTransaction, setEditTransaction] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Persist session after login
+  // ✅ Load session before rendering
   useEffect(() => {
     async function loadSession() {
       const { data } = await supabase.auth.getSession();
       setUser(data?.session?.user ?? null);
     }
-
     loadSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -42,6 +41,12 @@ function AppContent() {
     navigate('/login');
   }
 
+  // ✅ Show loading until session is resolved
+  if (user === undefined) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  // ✅ Show login if no user
   if (!user) {
     return (
       <Routes>
@@ -51,6 +56,7 @@ function AppContent() {
     );
   }
 
+  // ✅ Authenticated layout
   return (
     <div className="flex">
       <Sidebar
