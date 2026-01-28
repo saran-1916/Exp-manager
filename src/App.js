@@ -29,7 +29,7 @@ function NavBar({ onLogout }) {
             }`
           }
         >
-     Add Transaction
+          Add Transaction
         </NavLink>
         <button
           onClick={onLogout}
@@ -45,7 +45,6 @@ function NavBar({ onLogout }) {
             }`
           }
         >
-     
           Logout
         </button>
       </div>
