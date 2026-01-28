@@ -22,9 +22,12 @@ function AppContent() {
 
   // ✅ Persist session after login
   useEffect(() => {
-    const session = supabase.auth.getSession().then(({ data }) => {
+    async function loadSession() {
+      const { data } = await supabase.auth.getSession();
       setUser(data?.session?.user ?? null);
-    });
+    }
+
+    loadSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
