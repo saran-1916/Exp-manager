@@ -2,12 +2,29 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
-function TransactionsPage({ userId, onEdit }) {
+function TransactionsPage({ onEdit }) {
+  const [user, setUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const navigate = useNavigate();
 
+  // ✅ Get logged-in user
+  useEffect(() => {
+    async function getUser() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Auth error:", error.message);
+      } else {
+        setUser(user);
+      }
+    }
+    getUser();
+  }, []);
+
+  // ✅ Fetch transactions for logged-in user
   useEffect(() => {
     async function fetchData() {
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -21,7 +38,7 @@ function TransactionsPage({ userId, onEdit }) {
           categories ( name ),
           subcategories ( name )
         `)
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .order('date', { ascending: false });
 
       if (error) {
@@ -33,7 +50,7 @@ function TransactionsPage({ userId, onEdit }) {
     }
 
     fetchData();
-  }, [userId]);
+  }, [user]);
 
   async function handleDelete(id) {
     const confirm = window.confirm("Are you sure you want to delete this transaction?");
