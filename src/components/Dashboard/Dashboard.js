@@ -14,6 +14,7 @@ function Dashboard() {
   const [subcategories, setSubcategories] = useState([]);
   const [availableYears, setAvailableYears] = useState([]);
   const [availableMonths, setAvailableMonths] = useState([]);
+  const [carryForward, setCarryForward] = useState(0);
 
   // ✅ Get logged-in user once
   useEffect(() => {
@@ -107,7 +108,7 @@ if (yearFilter && monthFilter) {
   const prevCredit = prevData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
   previousBalance = prevCredit - prevDebit;
 }
-
+setCarryForward(previousBalance);
 // ✅ Current month summary with carry‑forward
 const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
 const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
