@@ -89,11 +89,31 @@ function Dashboard() {
         filteredData = filteredData.filter(t => t.subcategory_id === subcategoryFilter);
       }
 
-      // ✅ Summary
-      const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-      const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-      const balance = totalCredit - totalDebit;
-      setSummary({ debit: totalDebit, credit: totalCredit, balance });
+      // ✅ Calculate previous balance
+let previousBalance = 0;
+if (yearFilter && monthFilter) {
+  let targetYear = Number(yearFilter);
+  let targetMonth = Number(monthFilter) - 1;
+
+  if (targetMonth === 0) {
+    targetYear -= 1;
+    targetMonth = 12;
+  }
+
+  const prevEnd = `${targetYear}-${String(targetMonth).padStart(2, '0')}-31`;
+  const prevData = allData.filter(t => t.date <= prevEnd);
+
+  const prevDebit = prevData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
+  const prevCredit = prevData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
+  previousBalance = prevCredit - prevDebit;
+}
+
+// ✅ Current month summary with carry‑forward
+const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
+const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
+const balance = previousBalance + (totalCredit - totalDebit);
+
+setSummary({ debit: totalDebit, credit: totalCredit, balance });
 
       // ✅ Apply viewMode filter last
       const viewFiltered = filteredData.filter(t => {
