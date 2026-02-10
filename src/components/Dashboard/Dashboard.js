@@ -244,7 +244,11 @@ setSummary({ debit: totalDebit, credit: totalCredit, balance });
         >
           Credit View
         </button>
-      </div>
+      {/* ✅ Carry Forward Line */}
+  <span className="text-sm italic text-gray-600 ml-4">
+    Carry Forward: ₹{carryForward}
+  </span>
+</div>
 
       {/* Category Table */}
       <div className="mb-12">
