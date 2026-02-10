@@ -188,68 +188,73 @@ setSummary({ debit: totalDebit, credit: totalCredit, balance });
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-8">
-        <select
-          className="border px-3 py-2 rounded"
-          value={yearFilter}
-          onChange={e => setYearFilter(e.target.value)}
-        >
-          <option value="">All Years</option>
-          {availableYears.map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <select
-          className="border px-3 py-2 rounded"
-          value={monthFilter}
-          onChange={e => setMonthFilter(e.target.value)}
-          disabled={!yearFilter}
-        >
-          <option value="">All Months</option>
-          {availableMonths.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-        <select
-          className="border px-3 py-2 rounded"
-          value={categoryFilter}
-          onChange={e => setCategoryFilter(e.target.value)}
-        >
-          <option value="">All Categories</option>
-          {categories
-            .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
-            .map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-        </select>
-        <select
-          className="border px-3 py-2 rounded"
-          value={subcategoryFilter}
-          onChange={e => setSubcategoryFilter(e.target.value)}
-        >
-          <option value="">All Subcategories</option>
-          {subcategories.map(sub => (
-            <option key={sub.id} value={sub.id}>{sub.name}</option>
-          ))}
-        </select>
-                <button
-          className={`px-4 py-2 rounded font-semibold ${viewMode === 'debit' ? 'bg-red-600 text-white' : 'bg-gray-200 text-black'}`}
-          onClick={() => setViewMode('debit')}
-        >
-          Debit View
-        </button>
-        <button
-          className={`px-4 py-2 rounded font-semibold ${viewMode === 'credit' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black'}`}
-          onClick={() => setViewMode('credit')}
-        >
-          Credit View
-        </button>
-      {/* ✅ Carry Forward Line */}
+<div className="flex flex-wrap gap-4 mb-8 items-center">
+  <select
+    className="border px-3 py-2 rounded"
+    value={yearFilter}
+    onChange={e => setYearFilter(e.target.value)}
+  >
+    <option value="">All Years</option>
+    {availableYears.map(y => (
+      <option key={y} value={y}>{y}</option>
+    ))}
+  </select>
+
+  <select
+    className="border px-3 py-2 rounded"
+    value={monthFilter}
+    onChange={e => setMonthFilter(e.target.value)}
+    disabled={!yearFilter}
+  >
+    <option value="">All Months</option>
+    {availableMonths.map(m => (
+      <option key={m} value={m}>{m}</option>
+    ))}
+  </select>
+
+  <select
+    className="border px-3 py-2 rounded"
+    value={categoryFilter}
+    onChange={e => setCategoryFilter(e.target.value)}
+  >
+    <option value="">All Categories</option>
+    {categories
+      .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
+      .map(cat => (
+        <option key={cat.id} value={cat.id}>{cat.name}</option>
+      ))}
+  </select>
+
+  <select
+    className="border px-3 py-2 rounded"
+    value={subcategoryFilter}
+    onChange={e => setSubcategoryFilter(e.target.value)}
+  >
+    <option value="">All Subcategories</option>
+    {subcategories.map(sub => (
+      <option key={sub.id} value={sub.id}>{sub.name}</option>
+    ))}
+  </select>
+
+  <button
+    className={`px-4 py-2 rounded font-semibold ${viewMode === 'debit' ? 'bg-red-600 text-white' : 'bg-gray-200 text-black'}`}
+    onClick={() => setViewMode('debit')}
+  >
+    Debit View
+  </button>
+
+  <button
+    className={`px-4 py-2 rounded font-semibold ${viewMode === 'credit' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black'}`}
+    onClick={() => setViewMode('credit')}
+  >
+    Credit View
+  </button>
+
+  {/* ✅ Carry Forward Line */}
   <span className="text-sm italic text-gray-600 ml-4">
     Carry Forward: ₹{carryForward}
   </span>
 </div>
-
       {/* Category Table */}
       <div className="mb-12">
         <h3 className="text-xl font-bold text-black mb-4">
