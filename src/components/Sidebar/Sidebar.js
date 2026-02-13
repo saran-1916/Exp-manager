@@ -1,11 +1,14 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { BanknotesIcon } from '@heroicons/react/24/outline';
 import {
   HomeIcon,
   PlusCircleIcon,
   ClipboardDocumentListIcon,
   ArrowRightOnRectangleIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
@@ -15,6 +18,7 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
     { name: 'Dashboard', path: '/dashboard', icon: HomeIcon },
     { name: 'Add Expense', path: '/form', icon: PlusCircleIcon },
     { name: 'Transactions', path: '/transactions', icon: ClipboardDocumentListIcon },
+    { name: 'Money Tracker', path: '/money-tracker', icon: BanknotesIcon }, // moved above Profile
     { name: 'Profile', path: '/profile', icon: UserCircleIcon }
   ];
 
@@ -32,7 +36,11 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
           onClick={() => setCollapsed(!collapsed)}
           className="text-gray-400 hover:text-yellow-400 transition-colors"
         >
-          {collapsed ? '➡️' : '⬅️'}
+          {collapsed ? (
+            <ChevronDoubleRightIcon className="h-5 w-5" />
+          ) : (
+            <ChevronDoubleLeftIcon className="h-5 w-5" />
+          )}
         </button>
       </div>
 

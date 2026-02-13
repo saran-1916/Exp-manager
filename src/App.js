@@ -12,6 +12,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import TransactionsPage from './components/Transactions/TransactionsPage';
 import Profile from './components/Profile/Profile';
 import Sidebar from './components/Sidebar/Sidebar';
+import MoneyTracker from './components/MoneyTracker/MoneyTracker';
 import { supabase } from './services/supabaseClient';
 
 function AppContent() {
@@ -85,6 +86,7 @@ function AppContent() {
             path="/transactions"
             element={<TransactionsPage onEdit={setEditTransaction} />}
           />
+          <Route path="/money-tracker" element={<MoneyTracker user={user} />} />
           <Route path="/profile" element={<Profile user={user} />} />
         </Routes>
       </div>
