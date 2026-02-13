@@ -61,8 +61,8 @@ function TransactionsPage({ onEdit }) {
   }, [user]);
 
   async function handleDelete(id) {
-    const confirm = window.confirm("Are you sure you want to delete this transaction?");
-    if (!confirm) return;
+    const confirmDelete = window.confirm("Are you sure you want to delete this transaction?");
+    if (!confirmDelete) return;
 
     const { error } = await supabase
       .from('transactions')
