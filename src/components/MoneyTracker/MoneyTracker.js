@@ -6,7 +6,7 @@ export default function MoneyTracker({ user }) {
   const [lent, setLent] = useState([]);
   const [savings, setSavings] = useState([]);
 
-  // Form + edit states
+  // Form + edit states.
   const [safePerson, setSafePerson] = useState('');
   const [safeAmount, setSafeAmount] = useState('');
   const [safeNotes, setSafeNotes] = useState('');
