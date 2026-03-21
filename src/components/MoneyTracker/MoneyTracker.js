@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../services/supabaseClient';
 
 export default function MoneyTracker({ user }) {
@@ -6,7 +6,7 @@ export default function MoneyTracker({ user }) {
   const [lent, setLent] = useState([]);
   const [savings, setSavings] = useState([]);
 
-  // Form + edit states.
+  // Form + edit states
   const [safePerson, setSafePerson] = useState('');
   const [safeAmount, setSafeAmount] = useState('');
   const [safeNotes, setSafeNotes] = useState('');
@@ -21,52 +21,53 @@ export default function MoneyTracker({ user }) {
   const [savingNotes, setSavingNotes] = useState('');
   const [savingEditingId, setSavingEditingId] = useState(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchSafeKeeping();
-    fetchLent();
-    fetchSavings();
-  }, [user]);
-
-  // Fetch functions with returns
-  async function fetchSafeKeeping() {
+  // Fetch functions wrapped in useCallback
+  const fetchSafeKeeping = useCallback(async () => {
     const { data } = await supabase
       .from('safe_keeping')
       .select('id, person_name, amount, notes, date, safe_returns(amount)')
-      .eq('user_id', user.id);
+      .eq('user_id', user?.id);
 
     const withRemaining = (data || []).map(r => {
       const returned = (r.safe_returns || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
       return { ...r, returned, remaining: Number(r.amount) - returned };
     });
     setSafeKeeping(withRemaining);
-  }
+  }, [user]);
 
-  async function fetchLent() {
+  const fetchLent = useCallback(async () => {
     const { data } = await supabase
       .from('lent')
       .select('id, person_name, amount, notes, date, lent_returns(amount)')
-      .eq('user_id', user.id);
+      .eq('user_id', user?.id);
 
     const withRemaining = (data || []).map(r => {
       const returned = (r.lent_returns || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
       return { ...r, returned, remaining: Number(r.amount) - returned };
     });
     setLent(withRemaining);
-  }
+  }, [user]);
 
-  async function fetchSavings() {
+  const fetchSavings = useCallback(async () => {
     const { data } = await supabase
       .from('savings')
       .select('id, amount, notes, date, savings_returns(amount)')
-      .eq('user_id', user.id);
+      .eq('user_id', user?.id);
 
     const withRemaining = (data || []).map(r => {
       const returned = (r.savings_returns || []).reduce((sum, x) => sum + Number(x.amount || 0), 0);
       return { ...r, returned, remaining: Number(r.amount) - returned };
     });
     setSavings(withRemaining);
-  }
+  }, [user]);
+
+  // useEffect now includes the callbacks
+  useEffect(() => {
+    if (!user) return;
+    fetchSafeKeeping();
+    fetchLent();
+    fetchSavings();
+  }, [user, fetchSafeKeeping, fetchLent, fetchSavings]);
 
   // Add / Update handlers
   async function handleSafeKeeping(e) {
@@ -176,11 +177,12 @@ export default function MoneyTracker({ user }) {
     fetchSavings();
   }
 
-  // Overall totals
+  // Totals
   const totalSafe = safeKeeping.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
   const totalLent = lent.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
   const totalSavings = savings.reduce((sum, r) => sum + Number(r.remaining || 0), 0);
-    return (
+
+  return (
     <div className="max-w-6xl mx-auto p-6 space-y-10">
 
       {/* Overall Statistics */}
@@ -201,33 +203,14 @@ export default function MoneyTracker({ user }) {
 
       {/* Safe Keeping Form */}
       <form onSubmit={handleSafeKeeping} className="mb-6 space-x-3">
-  <input
-    type="text"
-    placeholder="Person"
-    value={safePerson}
-    onChange={e => setSafePerson(e.target.value)}
-    className="border p-2"
-    required
-  />
-  <input
-    type="number"
-    placeholder="Amount"
-    value={safeAmount}
-    onChange={e => setSafeAmount(e.target.value)}
-    className="border p-2"
-    required
-  />
-  <input
-    type="text"
-    placeholder="Notes"
-    value={safeNotes}
-    onChange={e => setSafeNotes(e.target.value)}
-    className="border p-2"
-  />
-  <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
-    {safeEditingId ? "Update Safe Keeping" : "Add Safe Keeping"}
-  </button>
-</form>
+        <input type="text" value={safePerson} onChange={e => setSafePerson(e.target.value)} placeholder="Person" className="border p-2" required />
+        <input type="number" value={safeAmount} onChange={e => setSafeAmount(e.target.value)} placeholder="Amount" className="border p-2" required />
+        <input type="text" value={safeNotes} onChange={e => setSafeNotes(e.target.value)} placeholder="Notes" className="border p-2" />
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
+          {safeEditingId ? "Update Safe Keeping" : "Add Safe Keeping"}
+        </button>
+        </button>
+      </form>
 
       {/* Safe Keeping Table */}
       <section>
@@ -289,9 +272,9 @@ export default function MoneyTracker({ user }) {
 
       {/* Lent Form */}
       <form onSubmit={handleLent} className="mb-6 space-x-3">
-        <input type="text" placeholder="Person" value={lentPerson} onChange={e => setLentPerson(e.target.value)} className="border p-2" required />
-        <input type="number" placeholder="Amount" value={lentAmount} onChange={e => setLentAmount(e.target.value)} className="border p-2" required />
-        <input type="text" placeholder="Notes" value={lentNotes} onChange={e => setLentNotes(e.target.value)} className="border p-2" />
+        <input type="text" value={lentPerson} onChange={e => setLentPerson(e.target.value)} placeholder="Person" className="border p-2" required />
+        <input type="number" value={lentAmount} onChange={e => setLentAmount(e.target.value)} placeholder="Amount" className="border p-2" required />
+        <input type="text" value={lentNotes} onChange={e => setLentNotes(e.target.value)} placeholder="Notes" className="border p-2" />
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
           {lentEditingId ? "Update Lent" : "Add Lent"}
         </button>
@@ -357,8 +340,8 @@ export default function MoneyTracker({ user }) {
 
       {/* Savings Form */}
       <form onSubmit={handleSavings} className="mb-6 space-x-3">
-        <input type="number" placeholder="Amount" value={savingAmount} onChange={e => setSavingAmount(e.target.value)} className="border p-2" required />
-        <input type="text" placeholder="Notes" value={savingNotes} onChange={e => setSavingNotes(e.target.value)} className="border p-2" />
+        <input type="number" value={savingAmount} onChange={e => setSavingAmount(e.target.value)} placeholder="Amount" className="border p-2" required />
+        <input type="text" value={savingNotes} onChange={e => setSavingNotes(e.target.value)} placeholder="Notes" className="border p-2" />
         <button type="submit" className="bg-yellow-600 text-white px-4 py-2 rounded">
           {savingEditingId ? "Update Saving" : "Add Saving"}
         </button>
@@ -411,13 +394,12 @@ export default function MoneyTracker({ user }) {
                     className="text-red-600 hover:underline"
                   >
                     Delete
-                                    </button>
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </section>
-    </div>
-  );
-}
+    </div
+              
