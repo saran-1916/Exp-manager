@@ -209,7 +209,6 @@ export default function MoneyTracker({ user }) {
         <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
           {safeEditingId ? "Update Safe Keeping" : "Add Safe Keeping"}
         </button>
-        </button>
       </form>
 
       {/* Safe Keeping Table */}
