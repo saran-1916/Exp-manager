@@ -401,4 +401,6 @@ export default function MoneyTracker({ user }) {
         </table>
       </section>
     </div
-              
+     );
+}
+           
