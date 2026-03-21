@@ -393,14 +393,13 @@ export default function MoneyTracker({ user }) {
                     className="text-red-600 hover:underline"
                   >
                     Delete
-                  </button>
+                                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </section>
-    </div
-     );
+    </div>
+  );
 }
-           
