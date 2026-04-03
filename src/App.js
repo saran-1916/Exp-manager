@@ -1,103 +1,55 @@
 import { useState, useEffect } from 'react';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-  useNavigate
-} from 'react-router-dom';
-import Auth from './components/Auth/Auth';
-import ExpenseForm from './components/ExpenseForm/ExpenseForm';
-import Dashboard from './components/Dashboard/Dashboard';
-import TransactionsPage from './components/Transactions/TransactionsPage';
-import Profile from './components/Profile/Profile';
-import Sidebar from './components/Sidebar/Sidebar';
-import MoneyTracker from './components/MoneyTracker/MoneyTracker';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './services/supabaseClient';
 
-function AppContent() {
-  const [user, setUser] = useState(undefined); // undefined until session checked
-  const [editTransaction, setEditTransaction] = useState(null);
+// Components
+import Sidebar from './components/layout/Sidebar';
+import Dashboard from './components/dashboard/Dashboard';
+import TransactionsPage from './components/transactions/TransactionsPage';
+import ExpenseForm from './components/expenseform/ExpenseForm';
+import Auth from './components/auth/Auth';
+import MoneyTracker from './components/money-tracker/MoneyTracker';
+import StatisticsPage from './components/statistics/StatisticsPage';
+import Profile from './components/profile/Profile';
+
+export default function App() {
+  const [user, setUser] = useState(undefined);
   const [collapsed, setCollapsed] = useState(false);
-  const navigate = useNavigate();
+  const [editTransaction, setEditTransaction] = useState(null);
 
-  // ✅ Load session before rendering
   useEffect(() => {
-    async function loadSession() {
-      const { data } = await supabase.auth.getSession();
-      setUser(data?.session?.user ?? null);
-    }
-    loadSession();
-
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  async function handleLogout() {
-    setUser(null); // clear immediately for snappy UI
-    await supabase.auth.signOut();
-    navigate('/login');
-  }
+  if (user === undefined) return null;
+  if (!user) return <Auth setUser={setUser} />;
 
-  // ✅ Show loading until session is resolved
-  if (user === undefined) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  // ✅ Show login if no user
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Auth setUser={setUser} />} />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
-    );
-  }
-
-  // ✅ Authenticated layout
-  return (
-    <div className="flex">
-      <Sidebar
-        user={user}
-        onLogout={handleLogout}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-      />
-      {/* Match margin with sidebar width exactly */}
-      <div
-        className={`${collapsed ? 'ml-20' : 'ml-56'} w-full p-6 bg-gray-100 min-h-screen transition-all duration-300`}
-      >
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={<Dashboard user={user} />} />
-          <Route
-            path="/form"
-            element={
-              <ExpenseForm
-                editTransaction={editTransaction}
-                clearEdit={() => setEditTransaction(null)}
-              />
-            }
-          />
-          <Route
-            path="/transactions"
-            element={<TransactionsPage onEdit={setEditTransaction} />}
-          />
-          <Route path="/money-tracker" element={<MoneyTracker user={user} />} />
-          <Route path="/profile" element={<Profile user={user} />} />
-        </Routes>
-      </div>
-    </div>
-  );
-}
-
-export default function App() {
   return (
     <Router>
-      <AppContent />
+      <div className="flex min-h-screen bg-slate-50 font-sans">
+        <Sidebar user={user} onLogout={() => supabase.auth.signOut()} collapsed={collapsed} setCollapsed={setCollapsed} />
+        <main className={`flex-1 transition-all duration-300 p-4 md:p-10 ${collapsed ? 'ml-20' : 'ml-64'}`}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+            <Route path="/dashboard" element={<Dashboard user={user} />} />
+            <Route path="/transactions" element={<TransactionsPage user={user} onEdit={setEditTransaction} />} />
+            <Route path="/form" element={<ExpenseForm editTransaction={editTransaction} clearEdit={() => setEditTransaction(null)} />} />
+            <Route path="/money-tracker" element={<MoneyTracker user={user} />} />
+            <Route path="/statistics" element={<StatisticsPage user={user} />} />
+            
+            {/* ✅ 2. ADD THIS ROUTE HERE */}
+            <Route path="/profile" element={<Profile user={user} />} />
+            
+            <Route path="*" element={<Navigate to="/dashboard" />} />
+          </Routes>
+        </main>
+      </div>
     </Router>
   );
 }

@@ -1,201 +1,199 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../../services/supabaseClient';
+import React, { useMemo, useState } from 'react';
+import { useTransactions } from '../../hooks/useTransactions';
+import { Card } from '../ui/Card';
+import { Edit3, Trash2, Search, Filter, X, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../services/supabaseClient';
 
-function TransactionsPage({ onEdit }) {
-  const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
+export default function TransactionsPage({ user, onEdit }) {
+  const staticDate = useMemo(() => new Date(), []);
+  const { allTransactions, loading, refresh } = useTransactions(user?.id, staticDate);
   const navigate = useNavigate();
 
-  // Filter states
-  const [dateFilter, setDateFilter] = useState('');
-  const [descFilter, setDescFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [subCategoryFilter, setSubCategoryFilter] = useState('');
-  const [debitFilter, setDebitFilter] = useState('');
-  const [creditFilter, setCreditFilter] = useState('');
+  // --- FILTER STATES ---
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  // ✅ Get logged-in user
-  useEffect(() => {
-    async function getUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Auth error:", error.message);
-      } else {
-        setUser(user);
-      }
+  // 1. Get unique categories for the dropdown menu
+  const uniqueCategories = useMemo(() => {
+    const cats = allTransactions.map(t => t.categories?.name).filter(Boolean);
+    return ['all', ...new Set(cats)];
+  }, [allTransactions]);
+
+  // 2. FILTER LOGIC (Calculated instantly whenever a filter changes)
+  const filteredData = useMemo(() => {
+    return allTransactions.filter(t => {
+      const matchesSearch = t.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || t.categories?.name === selectedCategory;
+      const matchesStartDate = !startDate || t.date >= startDate;
+      const matchesEndDate = !endDate || t.date <= endDate;
+
+      return matchesSearch && matchesCategory && matchesStartDate && matchesEndDate;
+    });
+  }, [allTransactions, searchTerm, selectedCategory, startDate, endDate]);
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Permanently delete this record?")) {
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      if (!error) refresh();
     }
-    getUser();
-  }, []);
+  };
 
-  // ✅ Fetch transactions for logged-in user
-  useEffect(() => {
-    async function fetchData() {
-      if (!user) return;
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setStartDate('');
+    setEndDate('');
+  };
 
-      const { data, error } = await supabase
-        .from('transactions')
-        .select(`
-          id,
-          date,
-          description,
-          debit,
-          credit,
-          category_id,
-          subcategory_id,
-          categories ( name ),
-          subcategories ( name )
-        `)
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-
-      if (error) {
-        console.error("Fetch error:", error.message);
-        return;
-      }
-
-      setTransactions(data || []);
-    }
-
-    fetchData();
-  }, [user]);
-
-  async function handleDelete(id) {
-    const confirmDelete = window.confirm("Are you sure you want to delete this transaction?");
-    if (!confirmDelete) return;
-
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error("Delete error:", error.message);
-      alert("Failed to delete: " + error.message);
-    } else {
-      setTransactions(prev => prev.filter(t => t.id !== id));
-    }
-  }
-
-  function handleEdit(t) {
-    onEdit(t);
-    navigate('/form');
-  }
-
-  // ✅ Apply filters
-  const filteredTransactions = transactions.filter(t => {
-    return (
-      (!dateFilter || t.date.includes(dateFilter)) &&
-      (!descFilter || t.description?.toLowerCase().includes(descFilter.toLowerCase())) &&
-      (!categoryFilter || t.categories?.name?.toLowerCase().includes(categoryFilter.toLowerCase())) &&
-      (!subCategoryFilter || t.subcategories?.name?.toLowerCase().includes(subCategoryFilter.toLowerCase())) &&
-      (!debitFilter || String(t.debit).includes(debitFilter)) &&
-      (!creditFilter || String(t.credit).includes(creditFilter))
-    );
-  });
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center font-black text-slate-900 text-2xl uppercase italic animate-pulse">
+      Opening Ledger History...
+    </div>
+  );
 
   return (
-    <div className="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-md rounded-lg border border-gray-200">
-      <h2 className="text-2xl font-bold text-black mb-6">All Transactions</h2>
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b">
-            <th className="py-2 px-3">Date</th>
-            <th className="py-2 px-3">Description</th>
-            <th className="py-2 px-3">Category</th>
-            <th className="py-2 px-3">Subcategory</th>
-            <th className="py-2 px-3">Debit</th>
-            <th className="py-2 px-3">Credit</th>
-            <th className="py-2 px-3">Actions</th>
-          </tr>
-          {/* Filter row */}
-          <tr className="border-b bg-gray-50">
-            <th className="py-1 px-3">
-              <input
-                type="text"
-                value={dateFilter}
-                onChange={e => setDateFilter(e.target.value)}
-                placeholder="Filter"
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            </th>
-            <th className="py-1 px-3">
-              <input
-                type="text"
-                value={descFilter}
-                onChange={e => setDescFilter(e.target.value)}
-                placeholder="Filter"
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            </th>
-            <th className="py-1 px-3">
-              <input
-                type="text"
-                value={categoryFilter}
-                onChange={e => setCategoryFilter(e.target.value)}
-                placeholder="Filter"
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            </th>
-            <th className="py-1 px-3">
-              <input
-                type="text"
-                value={subCategoryFilter}
-                onChange={e => setSubCategoryFilter(e.target.value)}
-                placeholder="Filter"
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            </th>
-            <th className="py-1 px-3">
-              <input
-                type="text"
-                value={debitFilter}
-                onChange={e => setDebitFilter(e.target.value)}
-                placeholder="Filter"
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            </th>
-            <th className="py-1 px-3">
-              <input
-                type="text"
-                value={creditFilter}
-                onChange={e => setCreditFilter(e.target.value)}
-                placeholder="Filter"
-                className="w-full border rounded px-2 py-1 text-sm"
-              />
-            </th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredTransactions.map(t => (
-            <tr key={t.id} className="border-b hover:bg-gray-50">
-              <td className="py-2 px-3">{t.date}</td>
-              <td className="py-2 px-3">{t.description}</td>
-              <td className="py-2 px-3">{t.categories?.name || '—'}</td>
-              <td className="py-2 px-3">{t.subcategories?.name || '—'}</td>
-              <td className="py-2 px-3 text-red-600">₹{t.debit}</td>
-              <td className="py-2 px-3 text-green-600">₹{t.credit}</td>
-              <td className="py-2 px-3 space-x-3">
-                <button
-                  className="text-sm text-blue-600 hover:underline"
-                  onClick={() => handleEdit(t)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="text-sm text-red-600 hover:underline"
-                  onClick={() => handleDelete(t.id)}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="max-w-7xl mx-auto space-y-6 pb-20">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">Transaction History</h1>
+          <p className="text-slate-500 font-bold text-sm tracking-tight">Manage your transactions</p>
+        </div>
+        
+        {/* Reset Button */}
+        {(searchTerm || selectedCategory !== 'all' || startDate || endDate) && (
+          <button 
+            onClick={resetFilters}
+            className="flex items-center gap-2 text-xs font-black text-rose-600 uppercase hover:bg-rose-50 px-3 py-2 rounded-xl transition-all"
+          >
+            <X size={14} /> Clear Filters
+          </button>
+        )}
+      </div>
+
+      {/* --- FILTER CONTROL BAR --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm">
+        {/* Search */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Details</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+            <input 
+              type="text" 
+              placeholder="Description..." 
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+            <select 
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm appearance-none cursor-pointer"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              {uniqueCategories.map(cat => (
+                <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Start Date */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">From Date</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+            <input 
+              type="date" 
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* End Date */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">To Date</label>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+            <input 
+              type="date" 
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* --- DATA TABLE --- */}
+      <Card className="p-0 overflow-hidden border-2 border-slate-200 shadow-sm bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-900 text-white">
+              <tr>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest">Date</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest">Description</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-right">Debit (-)</th>
+                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-right">Credit (+)</th>
+                <th className="p-4"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredData.length > 0 ? (
+                filteredData.map(t => (
+                  <tr key={t.id} className="hover:bg-indigo-50/20 transition-colors">
+                    <td className="p-4 text-xs font-black text-slate-500 uppercase">{t.date}</td>
+                    <td className="p-4">
+                      <p className="text-sm font-black text-slate-900 leading-none mb-1">{t.description || 'General Item'}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic">{t.categories?.name} / {t.subcategories?.name}</p>
+                    </td>
+                    <td className="p-4 text-sm font-black text-right text-rose-600">
+                      {t.debit > 0 ? `₹${t.debit.toLocaleString()}` : '—'}
+                    </td>
+                    <td className="p-4 text-sm font-black text-right text-emerald-600">
+                      {t.credit > 0 ? `₹${t.credit.toLocaleString()}` : '—'}
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        <button onClick={() => { onEdit(t); navigate('/form'); }} className="p-2 border-2 border-slate-100 rounded-lg hover:border-slate-900 transition-all">
+                          <Edit3 size={18} />
+                        </button>
+                        <button onClick={() => handleDelete(t.id)} className="p-2 border-2 border-slate-100 rounded-lg hover:border-rose-600 hover:text-rose-600 transition-all">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest italic bg-slate-50/50">
+                    No results match your current filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      
+      {/* Total Summary of Filtered View */}
+      <div className="flex justify-end pr-4">
+        <p className="text-sm font-bold text-slate-400 italic">
+          Showing {filteredData.length} records in this view.
+        </p>
+      </div>
     </div>
   );
 }
-
-export default TransactionsPage;

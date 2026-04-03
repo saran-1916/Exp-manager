@@ -1,334 +1,98 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../../services/supabaseClient';
+import React, { useState } from 'react';
+import { useTransactions } from '../../hooks/useTransactions';
+import { Card } from '../ui/Card';
+import { format, addMonths, subMonths } from 'date-fns';
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 
-function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [summary, setSummary] = useState({ debit: 0, credit: 0, balance: 0 });
-  const [yearFilter, setYearFilter] = useState('');
-  const [monthFilter, setMonthFilter] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [subcategoryFilter, setSubcategoryFilter] = useState('');
-  const [viewMode, setViewMode] = useState('debit'); // 'debit' or 'credit'
-  const [categories, setCategories] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  const [availableYears, setAvailableYears] = useState([]);
-  const [availableMonths, setAvailableMonths] = useState([]);
-  const [carryForward, setCarryForward] = useState(0);
+export default function Dashboard({ user }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const { monthlyTransactions, carryForward, salaryThisMonth, expensesThisMonth, loading } = useTransactions(user?.id, currentDate);
 
-  // ✅ Get logged-in user once
-  useEffect(() => {
-    async function getUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Auth error:", error.message);
-      } else {
-        setUser(user);
-      }
+  const totalMonthlyIncome = carryForward + salaryThisMonth;
+  const currentBalance = totalMonthlyIncome - expensesThisMonth;
+
+  // Visual Hierarchy Logic
+  const hierarchy = monthlyTransactions.reduce((acc, t) => {
+    if (t.debit > 0) {
+      const cat = t.categories?.name || 'General';
+      if (!acc[cat]) acc[cat] = { total: 0, subs: {} };
+      acc[cat].total += Number(t.debit);
+      const sub = t.subcategories?.name || 'Other';
+      acc[cat].subs[sub] = (acc[cat].subs[sub] || 0) + Number(t.debit);
     }
-    getUser();
-  }, []);
+    return acc;
+  }, {});
 
-  // ✅ Set default filters to current year/month
-  useEffect(() => {
-    const now = new Date();
-    const currentYear = String(now.getFullYear());
-    const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-    setYearFilter(currentYear);
-    setMonthFilter(currentMonth);
-  }, []);
-
-  useEffect(() => {
-    supabase.from('categories').select('*').then(({ data }) => setCategories(data || []));
-    supabase.from('subcategories').select('*').then(({ data }) => setSubcategories(data || []));
-  }, []);
-
-  useEffect(() => {
-    async function fetchData() {
-      if (!user) return; // wait until user is loaded
-
-      const { data: allData, error } = await supabase
-        .from('transactions')
-        .select(`
-          id, date, debit, credit, category_id, subcategory_id,
-          categories ( name, type ), subcategories ( name )
-        `)
-        .eq('user_id', user.id);
-
-      if (error) return console.error("Fetch error:", error.message);
-
-      // ✅ Build available years/months from ALL data
-      const years = new Set();
-      const months = new Set();
-      allData.forEach(t => {
-        if (t.date) {
-          const [y, m] = t.date.split('-');
-          years.add(y);
-          months.add(m);
-        }
-      });
-      setAvailableYears([...years].sort());
-      setAvailableMonths([...months].sort());
-
-      // ✅ Apply filters on top of allData
-      let filteredData = [...allData];
-
-      if (yearFilter && monthFilter) {
-        const start = `${yearFilter}-${monthFilter}-01`;
-        const end = `${yearFilter}-${monthFilter}-31`;
-        filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
-      } else if (yearFilter) {
-        const start = `${yearFilter}-01-01`;
-        const end = `${yearFilter}-12-31`;
-        filteredData = filteredData.filter(t => t.date >= start && t.date <= end);
-      }
-
-      if (categoryFilter) {
-        filteredData = filteredData.filter(t => t.category_id === categoryFilter);
-      }
-      if (subcategoryFilter) {
-        filteredData = filteredData.filter(t => t.subcategory_id === subcategoryFilter);
-      }
-
-      // ✅ Calculate previous balance
-let previousBalance = 0;
-if (yearFilter && monthFilter) {
-  let targetYear = Number(yearFilter);
-  let targetMonth = Number(monthFilter) - 1;
-
-  if (targetMonth === 0) {
-    targetYear -= 1;
-    targetMonth = 12;
-  }
-
-  const prevEnd = `${targetYear}-${String(targetMonth).padStart(2, '0')}-31`;
-  const prevData = allData.filter(t => t.date <= prevEnd);
-
-  const prevDebit = prevData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-  const prevCredit = prevData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-  previousBalance = prevCredit - prevDebit;
-}
-setCarryForward(previousBalance);
-// ✅ Current month summary with carry‑forward
-const totalDebit = filteredData.reduce((acc, t) => acc + Number(t.debit || 0), 0);
-const totalCredit = filteredData.reduce((acc, t) => acc + Number(t.credit || 0), 0);
-const balance = previousBalance + (totalCredit - totalDebit);
-
-setSummary({ debit: totalDebit, credit: totalCredit, balance });
-
-      // ✅ Apply viewMode filter last
-      const viewFiltered = filteredData.filter(t => {
-        const type = t.categories?.type;
-        return viewMode === 'debit' ? type === 'Expense' : type === 'Income';
-      });
-
-      setTransactions(viewFiltered);
-    }
-
-    fetchData();
-  }, [user, yearFilter, monthFilter, categoryFilter, subcategoryFilter, viewMode]);
-
-  // Group by month and category/subcategory
-  const monthlyCategoryTotals = {};
-  const subcategoryMonthTotals = {};
-
-  transactions.forEach(t => {
-    const month = t.date?.slice(0, 7); // YYYY-MM
-    const cat = t.categories?.name || 'Uncategorized';
-    const sub = t.subcategories?.name || 'Uncategorized';
-    const amount = viewMode === 'debit' ? Number(t.debit || 0) : Number(t.credit || 0);
-
-    if (!monthlyCategoryTotals[month]) monthlyCategoryTotals[month] = {};
-    monthlyCategoryTotals[month][cat] = (monthlyCategoryTotals[month][cat] || 0) + amount;
-
-    if (!subcategoryMonthTotals[sub]) subcategoryMonthTotals[sub] = {};
-    subcategoryMonthTotals[sub][month] = (subcategoryMonthTotals[sub][month] || 0) + amount;
-  });
-
-  function getTopSpender(data) {
-    let max = 0;
-    let top = '';
-    for (const key in data) {
-      if (data[key] > max) {
-        max = data[key];
-        top = key;
-      }
-    }
-    return top;
-  }
-
-  // ✅ Visible months logic
-  const visibleMonths = Object.keys(monthlyCategoryTotals).filter(month => {
-    if (yearFilter && monthFilter) return month === `${yearFilter}-${monthFilter}`;
-    if (yearFilter) return month.startsWith(`${yearFilter}-`);
-    return true;
-  });
+  if (loading) return <div className="h-screen flex items-center justify-center font-black text-slate-900 text-2xl animate-pulse">SYNCING DATA...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto mt-10 p-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-10">
-        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700">Total Debit</h3>
-          <p className="text-2xl font-bold text-red-600 mt-2">₹{summary.debit}</p>
-        </div>
-        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700">Total Credit</h3>
-          <p className="text-2xl font-bold text-green-600 mt-2">₹{summary.credit}</p>
-        </div>
-        <div className="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-700">Balance</h3>
-          <p
-            className={`text-2xl font-bold mt-2 ${
-              summary.balance >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
-            ₹{summary.balance}
-          </p>
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 font-sans">
+      {/* Month Selector */}
+      <div className="bg-white border-2 border-slate-200 p-6 rounded-3xl shadow-sm text-center">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setCurrentDate(subMonths(currentDate, 1))} className="p-2 border rounded-full hover:bg-slate-50 transition-colors"><ChevronLeft size={24} className="text-slate-900" /></button>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">{format(currentDate, 'MMMM yyyy')}</h2>
+            <p className="text-sm text-slate-500 font-bold italic mt-1 underline decoration-indigo-400">Carry Forward: ₹{carryForward.toLocaleString()}</p>
+          </div>
+          <button onClick={() => setCurrentDate(addMonths(currentDate, 1))} className="p-2 border rounded-full hover:bg-slate-50 transition-colors"><ChevronRight size={24} className="text-slate-900" /></button>
         </div>
       </div>
 
-      {/* Filters */}
-<div className="flex flex-wrap gap-4 mb-8 items-center">
-  <select
-    className="border px-3 py-2 rounded"
-    value={yearFilter}
-    onChange={e => setYearFilter(e.target.value)}
-  >
-    <option value="">All Years</option>
-    {availableYears.map(y => (
-      <option key={y} value={y}>{y}</option>
-    ))}
-  </select>
+      {/* 3 Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-l-8 border-emerald-500 shadow-md">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Monthly Income (Salary + CF)</p>
+          <div className="flex justify-between items-center mt-1">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tighter">₹{totalMonthlyIncome.toLocaleString()}</h2>
+            <TrendingUp size={24} className="text-emerald-500" />
+          </div>
+        </Card>
 
-  <select
-    className="border px-3 py-2 rounded"
-    value={monthFilter}
-    onChange={e => setMonthFilter(e.target.value)}
-    disabled={!yearFilter}
-  >
-    <option value="">All Months</option>
-    {availableMonths.map(m => (
-      <option key={m} value={m}>{m}</option>
-    ))}
-  </select>
+        <Card className="border-l-8 border-rose-500 shadow-md">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Monthly Expenses</p>
+          <div className="flex justify-between items-center mt-1">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tighter">₹{expensesThisMonth.toLocaleString()}</h2>
+            <TrendingDown size={24} className="text-rose-500" />
+          </div>
+        </Card>
 
-  <select
-    className="border px-3 py-2 rounded"
-    value={categoryFilter}
-    onChange={e => setCategoryFilter(e.target.value)}
-  >
-    <option value="">All Categories</option>
-    {categories
-      .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
-      .map(cat => (
-        <option key={cat.id} value={cat.id}>{cat.name}</option>
-      ))}
-  </select>
-
-  <select
-    className="border px-3 py-2 rounded"
-    value={subcategoryFilter}
-    onChange={e => setSubcategoryFilter(e.target.value)}
-  >
-    <option value="">All Subcategories</option>
-    {subcategories.map(sub => (
-      <option key={sub.id} value={sub.id}>{sub.name}</option>
-    ))}
-  </select>
-
-  <button
-    className={`px-4 py-2 rounded font-semibold ${viewMode === 'debit' ? 'bg-red-600 text-white' : 'bg-gray-200 text-black'}`}
-    onClick={() => setViewMode('debit')}
-  >
-    Debit View
-  </button>
-
-  <button
-    className={`px-4 py-2 rounded font-semibold ${viewMode === 'credit' ? 'bg-green-600 text-white' : 'bg-gray-200 text-black'}`}
-    onClick={() => setViewMode('credit')}
-  >
-    Credit View
-  </button>
-
-  {/* ✅ Carry Forward Line */}
-  <span className="text-sm italic text-gray-600 ml-4">
-    Carry Forward: ₹{carryForward}
-  </span>
-</div>
-      {/* Category Table */}
-      <div className="mb-12">
-        <h3 className="text-xl font-bold text-black mb-4">
-          Month-wise Totals by Category ({viewMode})
-        </h3>
-        <table className="w-full text-left border-collapse bg-white shadow-md rounded-lg border border-gray-200">
-          <thead>
-            <tr className="border-b bg-gray-100">
-              <th className="py-2 px-3">Month</th>
-              {categories
-                .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
-                .map(cat => (
-                  <th key={cat.name} className="py-2 px-3">{cat.name}</th>
-                ))}
-              <th className="py-2 px-3">Top Category</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleMonths.map(month => {
-              const data = monthlyCategoryTotals[month] || {};
-              return (
-                <tr key={month} className="border-b hover:bg-gray-50">
-                  <td className="py-2 px-3">{month}</td>
-                  {categories
-                    .filter(c => viewMode === 'debit' ? c.type === 'Expense' : c.type === 'Income')
-                    .map(cat => (
-                      <td key={cat.name} className="py-2 px-3">₹{data[cat.name] || 0}</td>
-                    ))}
-                  <td className="py-2 px-3 font-semibold text-red-600">
-                    {getTopSpender(data)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <Card className="border-l-8 border-indigo-600 bg-indigo-50/20 shadow-md">
+          <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Current Net Balance</p>
+          <div className="flex justify-between items-center mt-1">
+            <h2 className="text-3xl font-black text-slate-950 tracking-tighter italic">₹{currentBalance.toLocaleString()}</h2>
+            <Wallet size={24} className="text-indigo-400" />
+          </div>
+        </Card>
       </div>
 
-      {/* Subcategory Table (vertical layout) */}
-      <div>
-        <h3 className="text-xl font-bold text-black mb-4">
-          Month-wise Totals by Subcategory ({viewMode})
-        </h3>
-        <table className="w-full text-left border-collapse bg-white shadow-md rounded-lg border border-gray-200">
-          <thead>
-            <tr className="border-b bg-gray-100">
-              <th className="py-2 px-3">Subcategory</th>
-              {visibleMonths.map(month => (
-                <th key={month} className="py-2 px-3">{month}</th>
-              ))}
-              <th className="py-2 px-3">Top Month</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.keys(subcategoryMonthTotals).map(sub => {
-              const data = subcategoryMonthTotals[sub] || {};
-              return (
-                <tr key={sub} className="border-b hover:bg-gray-50">
-                  <td className="py-2 px-3">{sub}</td>
-                  {visibleMonths.map(month => (
-                    <td key={month} className="py-2 px-3">₹{data[month] || 0}</td>
+      {/* Visual Analysis */}
+      <Card className="p-8 border-2 border-slate-100 shadow-sm">
+        <h3 className="text-lg font-black text-slate-800 mb-8 uppercase tracking-tight border-b-2 border-slate-100 pb-2">Monthly Spending Analysis</h3>
+        <div className="space-y-12">
+          {Object.entries(hierarchy).map(([cat, data]) => {
+            const perc = ((data.total / expensesThisMonth) * 100).toFixed(0);
+            return (
+              <div key={cat} className="space-y-3">
+                <div className="flex justify-between items-end">
+                  <span className="font-black text-slate-700 uppercase text-xs">{cat}</span>
+                  <span className="font-black text-slate-900 text-base">₹{data.total.toLocaleString()} ({perc}%)</span>
+                </div>
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                  <div className="h-full bg-slate-900 rounded-full transition-all" style={{ width: `${perc}%` }} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(data.subs).map(([sub, val]) => (
+                    <div key={sub} className="px-3 py-1 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-tighter">
+                      {sub}: ₹{val}
+                    </div>
                   ))}
-                  <td className="py-2 px-3 font-semibold text-green-600">
-                    {getTopSpender(data)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
     </div>
   );
 }
-
-export default Dashboard;

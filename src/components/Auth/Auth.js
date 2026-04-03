@@ -1,105 +1,94 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';   // ✅ add this
 import { supabase } from '../../services/supabaseClient';
+import { Card } from '../ui/Card';
+import { Lock, Mail, ArrowRight, Wallet } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-function Auth({ setUser }) {
+export default function Auth({ setUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const navigate = useNavigate();   // ✅ initialize navigate
+  const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  async function handleLogin(e) {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(true);
+    
+    const { data, error } = isSignUp 
+      ? await supabase.auth.signUp({ email, password })
+      : await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
       alert(error.message);
     } else {
       setUser(data.user);
-      navigate('/dashboard');   // ✅ redirect immediately after login
     }
-  }
-
-  async function handleSignup(e) {
-    e.preventDefault();
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      alert(error.message);
-    } else {
-      setUser(data.user);
-      navigate('/dashboard');   // ✅ redirect immediately after signup
-    }
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setUser(null);
-    navigate('/login');   // ✅ go back to login page after logout
-  }
+    setLoading(false);
+  };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-black mb-6">
-          Expense Manager
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          Sign in to continue
-        </p>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="you@example.com"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-200">
+            <Wallet className="text-white" size={32} />
           </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">My Expences</h1>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Personal Expense Manager</p>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-              placeholder="••••••••"
-              required
-            />
+        <Card className="p-8 border-2 border-slate-100 shadow-2xl">
+          <form onSubmit={handleAuth} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input 
+                  type="email" 
+                  required 
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 font-bold text-slate-700 transition-all"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <input 
+                  type="password" 
+                  required 
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 font-bold text-slate-700 transition-all"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? 'Authenticating...' : isSignUp ? 'Create Account' : 'Sign In'}
+              <ArrowRight size={18} />
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <button 
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
+            >
+              {isSignUp ? 'Already have an account? Sign In' : 'New here? Create an account'}
+            </button>
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-gray-800 transition"
-          >
-            Sign In
-          </button>
-        </form>
-
-        <form onSubmit={handleSignup} className="mt-6">
-          <button
-            type="submit"
-            className="w-full bg-gray-200 text-black py-3 rounded-md font-semibold hover:bg-gray-300 transition"
-          >
-            Create Account
-          </button>
-        </form>
-
-        <button
-          onClick={handleLogout}
-          className="mt-6 w-full text-sm text-gray-500 hover:underline"
-        >
-          Logout
-        </button>
-      </div>
+        </Card>
+      </motion.div>
     </div>
   );
 }
-
-export default Auth;
