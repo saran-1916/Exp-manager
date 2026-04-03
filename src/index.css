@@ -14,7 +14,7 @@
     @apply bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm rounded-2xl;
   }
   
-  /* Custom scrollbar for a cleaner look */
+  /* Custom scrollbar for a cleaner look and*/
   ::-webkit-scrollbar {
     width: 6px;
   }
