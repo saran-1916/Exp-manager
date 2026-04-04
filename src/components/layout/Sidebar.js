@@ -25,7 +25,7 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/50">
-          {!collapsed && <span className="font-bold text-xl text-white tracking-tight uppercase italic">Spendiz by Saran</span>}
+          {!collapsed && <span className="font-bold text-xl text-white tracking-tight uppercase italic">Spera</span>}
           <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg bg-slate-900 hover:bg-indigo-600 transition-colors">
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>

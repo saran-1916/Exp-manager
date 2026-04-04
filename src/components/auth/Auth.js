@@ -33,7 +33,7 @@ export default function Auth({ setUser }) {
           <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-200">
             <Wallet className="text-white" size={32} />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">Spendiz by Saran</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">Spera by Saran</h1>
           <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Personal Expense Manager</p>
         </div>
 
