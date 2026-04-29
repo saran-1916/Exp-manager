@@ -1,199 +1,373 @@
-import React, { useMemo, useState } from 'react';
-import { useTransactions } from '../../hooks/useTransactions';
-import { Card } from '../ui/Card';
-import { Edit3, Trash2, Search, Filter, X, Calendar } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
+import {
+  addMonths,
+  endOfMonth,
+  format,
+  parseISO,
+  startOfMonth,
+  subMonths
+} from 'date-fns';
+import {
+  ArrowDownLeft,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Edit3,
+  Filter,
+  Search,
+  Trash2
+} from 'lucide-react';
+import { Card } from '../ui/Card';
+import { CategoryIcon } from '../ui/CategoryIcon';
 import { supabase } from '../../services/supabaseClient';
 
-export default function TransactionsPage({ user, onEdit }) {
-  const staticDate = useMemo(() => new Date(), []);
-  const { allTransactions, loading, refresh } = useTransactions(user?.id, staticDate);
-  const navigate = useNavigate();
+const currency = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0
+});
 
-  // --- FILTER STATES ---
+const formatCurrency = (value) => currency.format(Number(value || 0));
+const pdfNumber = new Intl.NumberFormat('en-IN', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+const formatPdfCurrency = (value) => `Rs. ${pdfNumber.format(Number(value || 0))}`;
+
+export default function TransactionsPage({ user, onEdit }) {
+  const navigate = useNavigate();
+  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // 1. Get unique categories for the dropdown menu
-  const uniqueCategories = useMemo(() => {
-    const cats = allTransactions.map(t => t.categories?.name).filter(Boolean);
-    return ['all', ...new Set(cats)];
-  }, [allTransactions]);
+  const fetchMonthTransactions = useCallback(async () => {
+    if (!user?.id) return;
 
-  // 2. FILTER LOGIC (Calculated instantly whenever a filter changes)
-  const filteredData = useMemo(() => {
-    return allTransactions.filter(t => {
-      const matchesSearch = t.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    setLoading(true);
+    const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(`*, categories(name, type, icon_slug), subcategories(name)`)
+      .eq('user_id', user.id)
+      .gte('date', monthStart)
+      .lte('date', monthEnd)
+      .order('date', { ascending: false });
+
+    if (!error) setTransactions(data || []);
+    setLoading(false);
+  }, [selectedMonth, user?.id]);
+
+  useEffect(() => {
+    fetchMonthTransactions();
+  }, [fetchMonthTransactions]);
+
+  const filteredTransactions = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    return transactions.filter(t => {
+      const text = [
+        t.description,
+        t.categories?.name,
+        t.subcategories?.name,
+        t.date
+      ].filter(Boolean).join(' ').toLowerCase();
+      const matchesSearch = !query || text.includes(query);
       const matchesCategory = selectedCategory === 'all' || t.categories?.name === selectedCategory;
       const matchesStartDate = !startDate || t.date >= startDate;
       const matchesEndDate = !endDate || t.date <= endDate;
 
       return matchesSearch && matchesCategory && matchesStartDate && matchesEndDate;
     });
-  }, [allTransactions, searchTerm, selectedCategory, startDate, endDate]);
+  }, [transactions, searchTerm, selectedCategory, startDate, endDate]);
+
+  const uniqueCategories = useMemo(() => {
+    const cats = transactions.map(t => t.categories?.name).filter(Boolean);
+    return ['all', ...new Set(cats)];
+  }, [transactions]);
+
+  const summary = useMemo(() => {
+    const totalIncome = filteredTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
+    const totalExpense = filteredTransactions.reduce((sum, t) => sum + Number(t.debit || 0), 0);
+    return {
+      totalIncome,
+      totalExpense,
+      netBalance: totalIncome - totalExpense
+    };
+  }, [filteredTransactions]);
+
+  const groupedTransactions = useMemo(() => {
+    return filteredTransactions.reduce((groups, transaction) => {
+      const label = format(parseISO(transaction.date), 'dd MMMM yyyy');
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(transaction);
+      return groups;
+    }, {});
+  }, [filteredTransactions]);
 
   const handleDelete = async (id) => {
-    if (window.confirm("Permanently delete this record?")) {
+    if (window.confirm('Permanently delete this record?')) {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (!error) refresh();
+      if (!error) fetchMonthTransactions();
     }
   };
 
-  const resetFilters = () => {
-    setSearchTerm('');
-    setSelectedCategory('all');
-    setStartDate('');
-    setEndDate('');
+  const downloadStatement = () => {
+    const doc = new jsPDF();
+    const monthName = format(selectedMonth, 'MMMM');
+    const statementMonth = format(selectedMonth, 'MMM').toUpperCase();
+    const year = format(selectedMonth, 'yyyy');
+    const fileName = `SPERA_STMT_${statementMonth}_${year}.pdf`;
+
+    doc.setFillColor(17, 17, 17);
+    doc.rect(0, 0, 210, 42, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('SPERA', 16, 18);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${monthName} ${year} Statement`, 16, 29);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('Summary', 16, 56);
+
+    const summaryRows = [
+      ['Total Income', formatPdfCurrency(summary.totalIncome)],
+      ['Total Expense', formatPdfCurrency(summary.totalExpense)],
+      ['Net Balance', formatPdfCurrency(summary.netBalance)]
+    ];
+
+    let y = 66;
+    summaryRows.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(113, 113, 122);
+      doc.text(label, 16, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(value, 194, y, { align: 'right' });
+      y += 9;
+    });
+
+    y += 8;
+    doc.setFontSize(13);
+    doc.text('Transactions', 16, y);
+    y += 10;
+
+    filteredTransactions.forEach((t) => {
+      if (y > 276) {
+        doc.addPage();
+        y = 18;
+      }
+
+      const isCredit = Number(t.credit || 0) > 0;
+      const amount = isCredit ? Number(t.credit || 0) : Number(t.debit || 0);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(t.description || t.categories?.name || 'Transaction', 16, y);
+      doc.text(`${isCredit ? '+' : '-'} ${formatPdfCurrency(amount)}`, 194, y, { align: 'right' });
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(113, 113, 122);
+      doc.text(`${format(parseISO(t.date), 'dd MMM yyyy')}  |  ${t.categories?.name || 'General'} / ${t.subcategories?.name || 'Other'}`, 16, y);
+      y += 10;
+    });
+
+    if (filteredTransactions.length === 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(113, 113, 122);
+      doc.text('No transactions found for this statement view.', 16, y);
+    }
+
+    doc.save(fileName);
   };
 
-  if (loading) return (
-    <div className="h-screen flex items-center justify-center font-black text-slate-900 text-2xl uppercase italic animate-pulse">
-      Opening Ledger History...
-    </div>
-  );
-
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">Transaction History</h1>
-          <p className="text-slate-500 font-bold text-sm tracking-tight">Manage your transactions</p>
-        </div>
-        
-        {/* Reset Button */}
-        {(searchTerm || selectedCategory !== 'all' || startDate || endDate) && (
-          <button 
-            onClick={resetFilters}
-            className="flex items-center gap-2 text-xs font-black text-rose-600 uppercase hover:bg-rose-50 px-3 py-2 rounded-xl transition-all"
+    <div className="mx-auto max-w-5xl space-y-6 pb-24 font-sans">
+      <header className="space-y-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#71717A]">Ledger timeline</p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-black md:text-4xl">Transaction History</h1>
+            <p className="mt-2 text-sm font-bold text-[#71717A]">{format(selectedMonth, 'MMMM yyyy')} statement view</p>
+          </div>
+
+          <button
+            onClick={downloadStatement}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black px-5 text-sm font-black text-white transition active:scale-[0.98]"
           >
-            <X size={14} /> Clear Filters
+            <Download size={17} strokeWidth={1.7} />
+            Download Statement
           </button>
-        )}
-      </div>
-
-      {/* --- FILTER CONTROL BAR --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm">
-        {/* Search */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Details</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input 
-              type="text" 
-              placeholder="Description..." 
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
         </div>
 
-        {/* Category Filter */}
-        <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <select 
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm appearance-none cursor-pointer"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+        <div className="grid gap-3 lg:grid-cols-[auto_1fr] lg:items-stretch">
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#F0F0F0] bg-white p-2 sm:w-fit sm:justify-start">
+            <button
+              onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+              className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
+              aria-label="Previous month"
             >
-              {uniqueCategories.map(cat => (
-                <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
-              ))}
-            </select>
+              <ChevronLeft size={20} strokeWidth={1.7} />
+            </button>
+            <div className="min-w-0 px-2 text-center sm:min-w-[210px]">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#71717A]">Statement</p>
+              <h2 className="truncate text-base font-black text-black">{format(selectedMonth, 'MMMM yyyy')}</h2>
+            </div>
+            <button
+              onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+              className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
+              aria-label="Next month"
+            >
+              <ChevronRight size={20} strokeWidth={1.7} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Income</p>
+              <p className="mt-2 text-lg font-black text-emerald-600">{formatCurrency(summary.totalIncome)}</p>
+            </div>
+            <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Expense</p>
+              <p className="mt-2 text-lg font-black text-rose-600">{formatCurrency(summary.totalExpense)}</p>
+            </div>
+            <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Net</p>
+              <p className="mt-2 text-lg font-black text-black">{formatCurrency(summary.netBalance)}</p>
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Start Date */}
+      <Card className="grid grid-cols-1 gap-4 border border-[#F0F0F0] bg-white p-4 md:grid-cols-2 lg:grid-cols-4 md:p-5">
+        <div className="relative space-y-1">
+          <label className="ml-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Search by Description</label>
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A1A1AA]" size={18} strokeWidth={1.7} />
+          <input
+            type="text"
+            placeholder="Search by Description"
+            className="w-full rounded-2xl border border-[#F0F0F0] bg-white py-3 pl-12 pr-4 text-sm font-bold text-black outline-none transition focus:border-black"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="relative space-y-1">
+          <label className="ml-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Category</label>
+          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A1A1AA]" size={17} strokeWidth={1.7} />
+          <select
+            className="w-full appearance-none rounded-2xl border border-[#F0F0F0] bg-white py-3 pl-12 pr-4 text-sm font-bold text-black outline-none transition focus:border-black"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          >
+            {uniqueCategories.map(cat => (
+              <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">From Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input 
-              type="date" 
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
+          <label className="ml-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">From Date</label>
+          <input
+            type="date"
+            className="w-full rounded-2xl border border-[#F0F0F0] bg-white px-4 py-3 text-sm font-bold text-black outline-none transition focus:border-black"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
         </div>
 
-        {/* End Date */}
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">To Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
-            <input 
-              type="date" 
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* --- DATA TABLE --- */}
-      <Card className="p-0 overflow-hidden border-2 border-slate-200 shadow-sm bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-900 text-white">
-              <tr>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest">Date</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest">Description</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-right">Debit (-)</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-right">Credit (+)</th>
-                <th className="p-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredData.length > 0 ? (
-                filteredData.map(t => (
-                  <tr key={t.id} className="hover:bg-indigo-50/20 transition-colors">
-                    <td className="p-4 text-xs font-black text-slate-500 uppercase">{t.date}</td>
-                    <td className="p-4">
-                      <p className="text-sm font-black text-slate-900 leading-none mb-1">{t.description || 'General Item'}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter italic">{t.categories?.name} / {t.subcategories?.name}</p>
-                    </td>
-                    <td className="p-4 text-sm font-black text-right text-rose-600">
-                      {t.debit > 0 ? `₹${t.debit.toLocaleString()}` : '—'}
-                    </td>
-                    <td className="p-4 text-sm font-black text-right text-emerald-600">
-                      {t.credit > 0 ? `₹${t.credit.toLocaleString()}` : '—'}
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => { onEdit(t); navigate('/form'); }} className="p-2 border-2 border-slate-100 rounded-lg hover:border-slate-900 transition-all">
-                          <Edit3 size={18} />
-                        </button>
-                        <button onClick={() => handleDelete(t.id)} className="p-2 border-2 border-slate-100 rounded-lg hover:border-rose-600 hover:text-rose-600 transition-all">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest italic bg-slate-50/50">
-                    No results match your current filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <label className="ml-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">To Date</label>
+          <input
+            type="date"
+            className="w-full rounded-2xl border border-[#F0F0F0] bg-white px-4 py-3 text-sm font-bold text-black outline-none transition focus:border-black"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
         </div>
       </Card>
-      
-      {/* Total Summary of Filtered View */}
-      <div className="flex justify-end pr-4">
-        <p className="text-sm font-bold text-slate-400 italic">
-          Showing {filteredData.length} records in this view.
-        </p>
-      </div>
+
+      <section className="rounded-[28px] border border-[#F0F0F0] bg-white p-3 md:p-5">
+        {loading ? (
+          <div className="py-20 text-center text-sm font-black uppercase tracking-[0.2em] text-[#71717A]">
+            Opening timeline...
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="py-20 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-[#71717A]">No transactions</p>
+            <p className="mt-2 text-sm font-bold text-[#71717A]">Try another month or search term.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedTransactions).map(([dateLabel, items]) => (
+              <div key={dateLabel} className="space-y-2">
+                <div className="sticky top-0 z-10 bg-white/95 py-2 backdrop-blur">
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#71717A]">{dateLabel}</p>
+                </div>
+
+                <div className="space-y-2">
+                  {items.map(transaction => {
+                    const isCredit = Number(transaction.credit || 0) > 0;
+                    const amount = isCredit ? Number(transaction.credit || 0) : Number(transaction.debit || 0);
+                    return (
+                      <div key={transaction.id} className="group flex items-center gap-3 rounded-2xl border border-[#F0F0F0] bg-white p-3 transition hover:border-[#D4D4D8]">
+                        {isCredit ? (
+                          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
+                            <ArrowDownLeft size={19} strokeWidth={1.7} />
+                          </div>
+                        ) : (
+                          <CategoryIcon iconSlug={transaction.categories?.icon_slug} className="h-11 w-11 rounded-xl bg-[#111111] text-white" size={18} />
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-black text-black">{transaction.description || transaction.categories?.name || 'Transaction'}</p>
+                          <p className="mt-1 truncate text-[11px] font-bold uppercase tracking-tight text-[#71717A]">
+                            {transaction.categories?.name || 'General'} / {transaction.subcategories?.name || 'Other'}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className={`text-sm font-black ${isCredit ? 'text-black' : 'text-rose-600'}`}>
+                            {isCredit ? '+' : '-'}{formatCurrency(amount)}
+                          </p>
+                          <div className="mt-1 flex justify-end gap-1 opacity-40 transition group-hover:opacity-100">
+                            <button
+                              onClick={() => { onEdit(transaction); navigate('/form'); }}
+                              className="grid h-8 w-8 place-items-center rounded-lg text-[#A1A1AA] transition hover:bg-[#F8F8F8] hover:text-black"
+                              aria-label="Edit transaction"
+                            >
+                              <Edit3 size={15} strokeWidth={1.7} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(transaction.id)}
+                              className="grid h-8 w-8 place-items-center rounded-lg text-[#A1A1AA] transition hover:bg-rose-50 hover:text-rose-600"
+                              aria-label="Delete transaction"
+                            >
+                              <Trash2 size={15} strokeWidth={1.7} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

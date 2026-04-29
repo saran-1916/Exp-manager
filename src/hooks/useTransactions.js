@@ -23,7 +23,7 @@ export function useTransactions(userId, selectedDate) {
     try {
       const { data: all, error } = await supabase
         .from('transactions')
-        .select(`*, categories(name, type), subcategories(name)`)
+        .select(`*, categories(name, type, icon_slug), subcategories(name)`)
         .eq('user_id', userId)
         .order('date', { ascending: false });
 

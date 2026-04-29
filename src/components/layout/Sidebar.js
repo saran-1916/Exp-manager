@@ -21,7 +21,8 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
   ];
 
   return (
-    <aside className={`fixed top-0 left-0 h-screen z-50 bg-slate-950 text-slate-300 transition-all duration-300 border-r border-slate-800 ${collapsed ? 'w-20' : 'w-64'}`}>
+    <>
+    <aside className={`fixed top-0 left-0 z-50 hidden h-screen bg-slate-950 text-slate-300 transition-all duration-300 border-r border-slate-800 md:block ${collapsed ? 'w-20' : 'w-64'}`}>
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/50">
@@ -35,7 +36,7 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
         <nav className="flex-1 py-6 px-3 space-y-1">
           {navItems.map((item) => (
             <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${location.pathname === item.path ? 'bg-indigo-600 text-white' : 'hover:bg-slate-900 hover:text-white'}`}>
-              <item.icon size={20} />
+              <item.icon size={20} strokeWidth={1.7} />
               {!collapsed && <span className="font-medium text-sm">{item.name}</span>}
             </Link>
           ))}
@@ -62,6 +63,21 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
         </div>
       </div>
     </aside>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#F0F0F0] bg-white px-3 py-2 md:hidden">
+      <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+        {navItems.slice(0, 5).map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-black transition-all ${location.pathname === item.path ? 'text-[#0077FF]' : 'text-[#71717A]'}`}
+          >
+            <item.icon size={19} strokeWidth={1.7} />
+            <span className="max-w-full truncate px-1">{item.name === 'Add Transaction' ? 'Add' : item.name === 'Money Tracker' ? 'Tracker' : item.name}</span>
+          </Link>
+        ))}
+      </div>
+    </nav>
+    </>
   );
 };
 
