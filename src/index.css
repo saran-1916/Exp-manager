@@ -18,6 +18,8 @@
   #root {
     min-height: 100%;
     background: var(--spera-sheet);
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   body {
@@ -67,6 +69,8 @@
 /* OneCard sheet skin for the existing Tailwind-heavy screens. */
 main {
   background: var(--spera-sheet);
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .border-slate-100,
@@ -152,6 +156,6 @@ textarea:focus-visible {
 
 @media (max-width: 767px) {
   main {
-    padding: 16px 16px 96px !important;
+    padding: 16px 16px 112px !important;
   }
 }

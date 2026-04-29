@@ -19,6 +19,13 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
     { name: 'Statistics', path: '/statistics', icon: BarChart2 },
     { name: 'Profile', path: '/profile', icon: User }
   ];
+  const mobileNavItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { name: 'History', path: '/transactions', icon: History, label: 'History' },
+    { name: 'Add Transaction', path: '/form', icon: PlusCircle, label: 'Add', featured: true },
+    { name: 'Statistics', path: '/statistics', icon: BarChart2, label: 'Stats' },
+    { name: 'Profile', path: '/profile', icon: User, label: 'Profile' }
+  ];
 
   return (
     <>
@@ -63,18 +70,26 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
         </div>
       </div>
     </aside>
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#F0F0F0] bg-white px-3 py-2 md:hidden">
-      <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
-        {navItems.slice(0, 5).map((item) => (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#F0F0F0] bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden">
+      <div className="mx-auto grid w-full max-w-md grid-cols-5 items-end gap-0.5">
+        {mobileNavItems.map((item) => {
+          const active = location.pathname === item.path;
+          const Icon = item.icon;
+          return (
           <Link
             key={item.path}
             to={item.path}
-            className={`flex h-14 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-black transition-all ${location.pathname === item.path ? 'text-[#0077FF]' : 'text-[#71717A]'}`}
+            className={`flex min-w-0 flex-col items-center justify-center rounded-xl font-black transition-all active:scale-[0.96] ${
+              item.featured
+                ? `mx-auto h-16 w-16 -translate-y-2 gap-1 bg-[#0077FF] text-white shadow-[0_16px_35px_rgba(0,119,255,0.25)] ${active ? 'ring-4 ring-[#EAF4FF]' : ''}`
+                : `h-14 gap-1 text-[9px] ${active ? 'bg-[#EAF4FF] text-[#0077FF]' : 'text-[#71717A]'}`
+            }`}
           >
-            <item.icon size={19} strokeWidth={1.7} />
-            <span className="max-w-full truncate px-1">{item.name === 'Add Transaction' ? 'Add' : item.name === 'Money Tracker' ? 'Tracker' : item.name}</span>
+            <Icon size={item.featured ? 23 : 18} strokeWidth={1.8} />
+            <span className={`max-w-full truncate px-0.5 leading-none ${item.featured ? 'text-[10px]' : 'text-[9px]'}`}>{item.label}</span>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </nav>
     </>

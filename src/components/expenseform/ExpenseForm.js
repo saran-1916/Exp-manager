@@ -5,6 +5,8 @@ import { CategoryIcon } from '../ui/CategoryIcon';
 import {
   Calendar,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Edit3,
   IndianRupee,
   LayoutGrid,
@@ -29,7 +31,7 @@ const initialState = {
 };
 
 const SUBCATEGORY_TABLES = ['sub_categories', 'subcategories'];
-const fieldClass = "w-full rounded-xl border border-[#F0F0F0] bg-white px-4 py-3 text-sm font-bold text-black outline-none transition-all focus:border-black disabled:opacity-30";
+const fieldClass = "block w-full max-w-full rounded-xl border border-[#F0F0F0] bg-white px-4 py-3 text-sm font-bold text-black outline-none transition-all focus:border-black disabled:opacity-30";
 const labelClass = "text-[11px] font-black uppercase tracking-[0.18em] text-[#888888] flex items-center gap-2";
 
 export default function ExpenseForm({ editTransaction, clearEdit }) {
@@ -213,19 +215,27 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
   const selectedCategory = categories.find(c => c.id === form.category_id);
   const selectedCategoryName = selectedCategory?.name || 'Pending sub-category selection';
   const selectedCategoryType = selectedCategory?.type;
+  const selectedManagerIndex = Math.max(categories.findIndex(c => c.id === selectedManagerCategoryId), 0);
   const managerSubcategories = useMemo(
     () => subcategories.filter(s => s.category_id === selectedManagerCategoryId),
     [subcategories, selectedManagerCategoryId]
   );
   const selectedManagerCategory = categories.find(c => c.id === selectedManagerCategoryId);
+  const stepCategory = (direction) => {
+    if (categories.length === 0) return;
+    const currentIndex = categories.findIndex(c => c.id === selectedManagerCategoryId);
+    const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+    const nextIndex = (safeIndex + direction + categories.length) % categories.length;
+    setSelectedManagerCategoryId(categories[nextIndex].id);
+  };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-4xl space-y-8 pb-24 font-sans">
-      <Card className="border border-[#F0F0F0] bg-white p-6 md:p-8">
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-4xl space-y-6 overflow-hidden pb-28 font-sans">
+      <Card className="w-full max-w-full overflow-hidden border border-[#F0F0F0] bg-white p-4 md:p-8">
         
         {/* Header */}
-        <div className="flex justify-between items-center mb-8 border-b border-[#F0F0F0] pb-6">
-          <div>
+        <div className="mb-8 flex flex-col gap-4 border-b border-[#F0F0F0] pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-3xl font-black text-black tracking-tight leading-none">
               {editTransaction ? 'Update Entry' : 'Add New Entry'}
             </h2>
@@ -235,7 +245,7 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
             <button 
               type="button"
               onClick={clearEdit} 
-              className="px-4 py-2 bg-white text-rose-700 rounded-xl text-xs font-bold uppercase hover:bg-rose-50 transition-all flex items-center gap-2 border border-[#F0F0F0]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#F0F0F0] bg-white px-4 py-2 text-xs font-bold uppercase text-rose-700 transition-all hover:bg-rose-50 sm:w-auto"
             >
               <X size={14} /> Cancel Edit
             </button>
@@ -244,7 +254,7 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
             {/* Date */}
             <div className="space-y-2">
               <label className={labelClass}>
@@ -265,7 +275,7 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
                 <Tag size={14} strokeWidth={1.7} /> Sub-category
               </label>
               <select 
-                className={`${fieldClass} appearance-none cursor-pointer`}
+                className={`${fieldClass} cursor-pointer appearance-none`}
                 value={form.subcategory_id}
                 onChange={e => handleSubChange(e.target.value)}
                 required
@@ -281,7 +291,7 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
             <label className={labelClass}>
               <LayoutGrid size={14} strokeWidth={1.7} /> Main category
             </label>
-            <div className={`flex w-full items-center gap-3 border rounded-xl px-4 py-3 font-bold text-sm transition-colors ${form.category_id ? 'bg-[#111111] border-[#111111] text-white' : 'bg-white border-[#F0F0F0] text-[#888888]'}`}>
+            <div className={`flex w-full max-w-full items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition-colors ${form.category_id ? 'bg-[#111111] border-[#111111] text-white' : 'bg-white border-[#F0F0F0] text-[#888888]'}`}>
               {form.category_id && (
                 <CategoryIcon iconSlug={selectedCategory?.icon_slug} className="h-9 w-9 border-white/10 bg-white/10 text-slate-300" size={16} />
               )}
@@ -305,7 +315,7 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
 
           {/* Amount Area */}
           <div className="rounded-2xl border border-[#F0F0F0] bg-white p-5 md:p-6">
-             <div className="grid grid-cols-2 gap-4 md:gap-6">
+             <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
                 <div className="space-y-2">
                   <label className={labelClass}>
                     <IndianRupee size={14} strokeWidth={1.7} className="text-rose-500" /> Amount spent
@@ -353,9 +363,9 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
         </form>
       </Card>
 
-      <Card className="border border-[#F0F0F0] bg-white p-6 md:p-8">
+      <Card className="w-full max-w-full overflow-hidden border border-[#F0F0F0] bg-white p-4 md:p-8">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-2xl font-black tracking-tight text-black">Manage Categories</h2>
             <p className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-[#888888]">List and chip manager</p>
           </div>
@@ -370,7 +380,7 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
         </div>
 
         {newCategoryOpen && (
-          <div className="mb-5 flex gap-2 rounded-2xl border border-[#F0F0F0] p-2">
+          <div className="mb-5 flex w-full max-w-full gap-2 rounded-2xl border border-[#F0F0F0] p-2">
             <input
               className="min-w-0 flex-1 rounded-xl border-0 px-3 py-2 text-sm font-bold text-black outline-none"
               placeholder="New category name"
@@ -387,47 +397,69 @@ export default function ExpenseForm({ editTransaction, clearEdit }) {
           </div>
         )}
 
-        <div className="flex gap-3 overflow-x-auto pb-3">
-          {categories.map(category => {
-            const isActive = selectedManagerCategoryId === category.id;
-            const key = `category-${category.id}`;
+        <div className="grid w-full max-w-full grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-3 rounded-2xl border border-[#F0F0F0] bg-white p-2">
+          <button
+            type="button"
+            onClick={() => stepCategory(-1)}
+            className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF] disabled:opacity-30"
+            aria-label="Previous category"
+            disabled={categories.length <= 1}
+          >
+            <ChevronLeft size={20} strokeWidth={1.7} />
+          </button>
 
-            return (
-              <div
-                key={category.id}
-                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 transition ${isActive ? 'border-black bg-black text-white' : 'border-[#F0F0F0] bg-white text-black'}`}
-              >
-                {editingCategoryId === category.id ? (
-                  <>
-                    <input
-                      className={`w-36 bg-transparent text-sm font-black outline-none ${isActive ? 'text-white placeholder:text-white/50' : 'text-black'}`}
-                      value={draftName}
-                      onChange={(e) => setDraftName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && saveCategoryName(category.id)}
-                      autoFocus
-                    />
-                    <button type="button" onClick={() => saveCategoryName(category.id)} className="text-current">
-                      {savingKey === key ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                    </button>
-                  </>
+          <div className="min-w-0 px-1 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#888888]">
+              Category {categories.length ? selectedManagerIndex + 1 : 0} / {categories.length}
+            </p>
+            {selectedManagerCategory && editingCategoryId === selectedManagerCategory.id ? (
+              <div className="mx-auto mt-2 flex max-w-full items-center gap-2 rounded-xl bg-[#F8F8F8] px-3 py-2">
+                <input
+                  className="min-w-0 flex-1 bg-transparent text-center text-sm font-black text-black outline-none"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && saveCategoryName(selectedManagerCategory.id)}
+                  autoFocus
+                />
+                <button type="button" onClick={() => saveCategoryName(selectedManagerCategory.id)} className="shrink-0 text-black">
+                  {savingKey === `category-${selectedManagerCategory.id}` ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                </button>
+                <button type="button" onClick={cancelInlineEdit} className="shrink-0 text-[#888888]">
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="mt-1 flex min-w-0 items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => selectedManagerCategory && startCategoryEdit(selectedManagerCategory)}
+                  className="min-w-0 truncate text-lg font-black text-black"
+                >
+                  {selectedManagerCategory?.name || 'No category'}
+                </button>
+                {selectedManagerCategory && savedKey === `category-${selectedManagerCategory.id}` ? (
+                  <CheckCircle2 size={15} className="shrink-0 text-emerald-500" />
                 ) : (
-                  <>
-                    <button type="button" onClick={() => setSelectedManagerCategoryId(category.id)} className="text-sm font-black">
-                      {category.name}
-                    </button>
-                    <button type="button" onClick={() => startCategoryEdit(category)} className={isActive ? 'text-white/70' : 'text-[#888888]'}>
-                      {savedKey === key ? <CheckCircle2 size={13} className="text-emerald-500" /> : <Edit3 size={13} strokeWidth={1.7} />}
-                    </button>
-                  </>
+                  <Edit3 size={15} strokeWidth={1.7} className="shrink-0 text-[#888888]" />
                 )}
               </div>
-            );
-          })}
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => stepCategory(1)}
+            className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF] disabled:opacity-30"
+            aria-label="Next category"
+            disabled={categories.length <= 1}
+          >
+            <ChevronRight size={20} strokeWidth={1.7} />
+          </button>
         </div>
 
         <div className="mt-6 rounded-3xl border border-[#F0F0F0] p-5 md:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#888888]">Sub-categories</p>
               <h3 className="mt-1 text-xl font-black text-black">{selectedManagerCategory?.name || 'Select a category'}</h3>
             </div>
