@@ -54,6 +54,10 @@
     box-shadow: none;
   }
 
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
   .spera-truncate {
     min-width: 0;
     max-width: 100%;

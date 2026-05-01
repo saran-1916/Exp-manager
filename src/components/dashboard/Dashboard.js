@@ -109,19 +109,12 @@ export default function Dashboard({ user }) {
     <div className="-m-4 min-h-screen bg-white font-sans md:-m-10">
       <section className="bg-white px-4 pb-8 pt-6 text-black md:px-10 md:pb-10 md:pt-10">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="spera-truncate-flex">
-              <div className="mb-4 inline-flex max-w-full items-center gap-2 overflow-hidden rounded-full border border-[#F0F0F0] bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-[#71717A]">
-                <Sparkles size={14} className="text-[#0077FF]" />
-                <span className="spera-truncate-label">{greeting}</span>
-              </div>
-              <h1 className="spera-truncate text-3xl font-black tracking-tight text-black sm:text-4xl">
-                Welcome, {displayName}
-              </h1>
-              <p className="spera-truncate mt-2 text-sm font-semibold text-[#71717A]">Here is your money snapshot for this month.</p>
-            </div>
 
-            <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#F0F0F0] bg-white p-2 sm:justify-start">
+          {/* ── Top bar: month navigator + profile badge (mobile) ── */}
+          <div className="relative flex items-center justify-between gap-2 lg:justify-start">
+
+            {/* Month navigator */}
+            <div className="flex items-center gap-2 rounded-2xl border border-[#F0F0F0] bg-white p-2">
               <button
                 onClick={() => setCurrentDate(subMonths(currentDate, 1))}
                 className="grid h-10 w-10 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
@@ -129,7 +122,7 @@ export default function Dashboard({ user }) {
               >
                 <ChevronLeft size={20} />
               </button>
-              <div className="min-w-0 max-w-[190px] flex-1 px-2 text-center sm:min-w-[190px]">
+              <div className="min-w-0 w-[160px] px-2 text-center">
                 <p className="spera-truncate-label font-black uppercase tracking-[0.25em] text-[#71717A]">Statement</p>
                 <h2 className="spera-truncate text-base font-black text-black">{format(currentDate, 'MMMM yyyy')}</h2>
               </div>
@@ -141,7 +134,18 @@ export default function Dashboard({ user }) {
                 <ChevronRight size={20} />
               </button>
             </div>
+
+            {/* Profile badge — visible on mobile only, hidden on lg+ (handled by sidebar/nav) */}
+            <Link
+              to="/profile"
+              className="lg:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#F0F0F0] bg-white text-xs font-black text-[#71717A] shadow-sm transition active:scale-95 hover:border-[#0077FF] hover:text-[#0077FF]"
+              aria-label="Profile"
+            >
+              {userInitials}
+            </Link>
+
           </div>
+          {/* ── /Top bar ── */}
 
           <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,0.68fr)_minmax(280px,0.32fr)] lg:items-stretch">
             <div className="rounded-[28px] bg-[#111111] p-5 text-white sm:p-7">

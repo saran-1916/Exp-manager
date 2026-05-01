@@ -23,8 +23,8 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, label: 'Home' },
     { name: 'History', path: '/transactions', icon: History, label: 'History' },
     { name: 'Add Transaction', path: '/form', icon: PlusCircle, label: 'Add', featured: true },
-    { name: 'Statistics', path: '/statistics', icon: BarChart2, label: 'Stats' },
-    { name: 'Profile', path: '/profile', icon: User, label: 'Profile' }
+    { name: 'Money Tracker', path: '/money-tracker', icon: Wallet, label: 'Tracker' },
+    { name: 'Statistics', path: '/statistics', icon: BarChart2, label: 'Stats' }
   ];
 
   return (
@@ -86,7 +86,7 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
             }`}
           >
             <Icon size={item.featured ? 21 : 16} strokeWidth={1.8} className="shrink-0" />
-            <span className={`max-w-full overflow-hidden text-ellipsis whitespace-nowrap px-0.5 leading-none ${item.featured ? 'text-[9px]' : 'text-[9px]'}`}>{item.label}</span>
+            <span className={`max-w-full overflow-hidden text-ellipsis whitespace-nowrap px-0.5 leading-none ${item.featured ? 'text-[9px]' : 'text-[8px]'}`}>{item.label}</span>
           </Link>
           );
         })}
