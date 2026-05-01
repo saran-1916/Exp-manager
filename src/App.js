@@ -34,7 +34,7 @@ export default function App() {
     <Router>
       <div className="flex min-h-screen max-w-[100vw] overflow-x-hidden bg-white font-sans">
         <Sidebar user={user} onLogout={() => supabase.auth.signOut()} collapsed={collapsed} setCollapsed={setCollapsed} />
-        <main className={`w-full max-w-[100vw] flex-1 overflow-x-hidden p-4 pb-[calc(8rem+env(safe-area-inset-bottom))] transition-all duration-300 md:p-10 ${collapsed ? 'md:ml-20' : 'md:ml-64'}`}>
+        <main className={`w-full max-w-[100vw] flex-1 overflow-x-hidden p-4 pb-20 transition-all duration-300 md:p-10 md:pb-10 ${collapsed ? 'md:ml-20' : 'md:ml-64'}`}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard user={user} />} />

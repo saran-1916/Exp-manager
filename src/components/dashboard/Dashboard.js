@@ -225,9 +225,7 @@ export default function Dashboard({ user }) {
                   <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${action.path === '/form' ? 'bg-white/15' : 'bg-[#F8F8F8] text-[#0077FF]'}`}>
                     <action.icon size={19} strokeWidth={1.7} />
                   </span>
-                  <span 
-                    className="spera-truncate-button w-full"
-                  >
+                  <span className="spera-card-text w-full font-black">
                     {action.label}
                   </span>
                 </Link>

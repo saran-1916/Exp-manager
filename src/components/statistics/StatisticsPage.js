@@ -49,29 +49,14 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// Calculate responsive interval for X-axis labels
-const getResponsiveInterval = (dataLength, isMobile, periodMode) => {
-  if (!isMobile) return 0; // Show all labels on desktop
-
-  // For daily view, show every 5th label
-  if (periodMode === 'day') {
-    return Math.ceil(dataLength / 6) - 1; // Aim for ~6 labels
-  }
-
-  // For other views, show every 2nd or 3rd label
-  if (dataLength > 12) return 2; // Every 3rd label
-  if (dataLength > 6) return 1;  // Every 2nd label
-  return 0; // Show all
-};
-
 // Get responsive tick styling
 const getResponsiveTickStyle = (isMobile) => ({
   fontSize: isMobile ? 10 : 11,
   fill: '#888888',
   fontWeight: 700,
   fontFamily: 'Inter, sans-serif',
-  angle: isMobile ? -45 : 0,
-  textAnchor: isMobile ? 'end' : 'middle'
+  angle: 0,
+  textAnchor: 'middle'
 });
 
 const amountFormat = new Intl.NumberFormat('en-IN', {
@@ -282,6 +267,10 @@ export default function StatisticsPage({ user }) {
   }, [currentTransactions]);
 
   const topSpendersData = useMemo(() => donutData.slice(0, 5), [donutData]);
+  const spendingChartWidth = useMemo(() => {
+    const labelWidth = periodMode === 'day' ? 46 : periodMode === 'week' ? 84 : 72;
+    return Math.max(560, spendingData.length * labelWidth + 104);
+  }, [periodMode, spendingData.length]);
 
   const hasData = currentTransactions.length > 0;
 
@@ -295,12 +284,12 @@ export default function StatisticsPage({ user }) {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="grid grid-cols-3 rounded-2xl border border-[#F0F0F0] bg-white p-1">
+          <div className="mx-auto grid w-full max-w-xl grid-cols-3 items-center justify-center gap-1 rounded-2xl border border-[#F0F0F0] bg-white p-1">
             {Object.entries(periodConfig).map(([key, config]) => (
               <button
                 key={key}
                 onClick={() => setPeriodMode(key)}
-                className={`rounded-xl px-3 py-3 text-xs font-black uppercase tracking-[0.18em] transition ${periodMode === key ? 'bg-black text-white' : 'text-[#71717A]'}`}
+                className={`min-w-0 rounded-xl px-3 py-3 text-center text-xs font-black uppercase tracking-[0.18em] transition ${periodMode === key ? 'bg-black text-white' : 'text-[#71717A]'}`}
               >
                 {config.label}
               </button>
@@ -332,16 +321,16 @@ export default function StatisticsPage({ user }) {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="border border-[#F0F0F0] bg-white p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Spent</p>
-          <p className="mt-3 text-2xl font-black text-black">{formatAmount(totals.currentExpense)}</p>
+          <p className="spera-card-text font-black uppercase tracking-[0.2em] text-[#71717A]">Spent</p>
+          <p className="spera-truncate mt-3 text-2xl font-black text-black">{formatAmount(totals.currentExpense)}</p>
         </Card>
         <Card className="border border-[#F0F0F0] bg-white p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Income</p>
-          <p className="mt-3 text-2xl font-black text-emerald-600">{formatAmount(totals.currentIncome)}</p>
+          <p className="spera-card-text font-black uppercase tracking-[0.2em] text-[#71717A]">Income</p>
+          <p className="spera-truncate mt-3 text-2xl font-black text-emerald-600">{formatAmount(totals.currentIncome)}</p>
         </Card>
         <Card className="border border-[#F0F0F0] bg-white p-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Net</p>
-          <p className="mt-3 text-2xl font-black text-black">{formatAmount(totals.net)}</p>
+          <p className="spera-card-text font-black uppercase tracking-[0.2em] text-[#71717A]">Net</p>
+          <p className="spera-truncate mt-3 text-2xl font-black text-black">{formatAmount(totals.net)}</p>
         </Card>
       </div>
 
@@ -361,37 +350,40 @@ export default function StatisticsPage({ user }) {
         ) : !hasData ? (
           <NoDataState />
         ) : (
-          <div className="h-[360px] w-full overflow-hidden rounded-lg" style={{ paddingBottom: isMobile ? '20px' : '0px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={spendingData} 
-                barCategoryGap={isMobile ? "35%" : "42%"}
-                margin={{ 
-                  left: 0, 
-                  right: 0, 
-                  top: 0, 
-                  bottom: isMobile ? 60 : 20 
-                }}
-              >
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={getResponsiveTickStyle(isMobile)}
-                  interval={getResponsiveInterval(spendingData.length, isMobile, periodMode)}
-                  height={isMobile ? 80 : 40}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={AXIS_TICK} 
-                  tickFormatter={(value) => `Rs. ${amountFormat.format(value)}`} 
-                  width={72} 
-                />
-                <Tooltip cursor={{ fill: '#FAFAFA' }} content={<SpendingTooltip />} />
-                <Bar dataKey="expense" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]} barSize={isMobile ? 14 : 18} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full overflow-x-auto overflow-y-hidden rounded-lg pb-2">
+            <div className="h-[360px]" style={{ width: `${spendingChartWidth}px`, minWidth: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={spendingData} 
+                  barCategoryGap={isMobile ? "34%" : "42%"}
+                  margin={{ 
+                    left: 0, 
+                    right: 8, 
+                    top: 0, 
+                    bottom: 28 
+                  }}
+                >
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={getResponsiveTickStyle(isMobile)}
+                    interval={0}
+                    height={48}
+                    tickMargin={12}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={AXIS_TICK} 
+                    tickFormatter={(value) => `Rs. ${amountFormat.format(value)}`} 
+                    width={72} 
+                  />
+                  <Tooltip cursor={{ fill: '#FAFAFA' }} content={<SpendingTooltip />} />
+                  <Bar dataKey="expense" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]} barSize={isMobile ? 14 : 18} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </Card>

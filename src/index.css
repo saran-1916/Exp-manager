@@ -20,12 +20,14 @@
     background: var(--spera-sheet);
     max-width: 100%;
     overflow-x: hidden;
+    overscroll-behavior-x: none;
   }
 
   body {
     @apply antialiased;
     color: var(--spera-primary);
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    touch-action: pan-y;
   }
 
   h1,
@@ -73,7 +75,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: clamp(0.625rem, 2.2vw, 0.75rem);
+    font-size: clamp(12px, 2.5vw, 14px);
   }
 
   .spera-truncate-button {
@@ -82,11 +84,40 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+    font-size: clamp(12px, 2.5vw, 14px);
+  }
+
+  .spera-card-text {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: clamp(12px, 2.5vw, 14px);
+  }
+
+  .spera-card :where(p, span),
+  .MuiCard-root :where(p, span) {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: clamp(12px, 2.5vw, 14px);
+  }
+
+  .spera-card :where(h2, h3, h4, h5, h6),
+  .MuiCard-root :where(h2, h3, h4, h5, h6) {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   ::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -189,6 +220,6 @@ textarea:focus-visible {
 
 @media (max-width: 767px) {
   main {
-    padding: 16px 16px calc(8rem + env(safe-area-inset-bottom)) !important;
+    padding: 16px 16px calc(6.5rem + env(safe-area-inset-bottom)) !important;
   }
 }

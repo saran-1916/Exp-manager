@@ -349,16 +349,16 @@ export default function TransactionsPage({ user, onEdit }) {
           {/* Overview Stats - Horizontal Row */}
           <div className="grid grid-cols-3 gap-3 lg:flex-1">
             <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Income</p>
-              <p className="mt-2 text-lg font-black text-emerald-600">{formatCurrency(summary.totalIncome)}</p>
+              <p className="spera-card-text font-black uppercase tracking-[0.2em] text-[#71717A]">Income</p>
+              <p className="spera-truncate mt-2 text-lg font-black text-emerald-600">{formatCurrency(summary.totalIncome)}</p>
             </div>
             <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Expense</p>
-              <p className="mt-2 text-lg font-black text-rose-600">{formatCurrency(summary.totalExpense)}</p>
+              <p className="spera-card-text font-black uppercase tracking-[0.2em] text-[#71717A]">Expense</p>
+              <p className="spera-truncate mt-2 text-lg font-black text-rose-600">{formatCurrency(summary.totalExpense)}</p>
             </div>
             <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Net</p>
-              <p className={`mt-2 text-lg font-black ${summary.netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              <p className="spera-card-text font-black uppercase tracking-[0.2em] text-[#71717A]">Net</p>
+              <p className={`spera-truncate mt-2 text-lg font-black ${summary.netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                 {formatCurrency(summary.netBalance)}
               </p>
             </div>
