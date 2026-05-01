@@ -25,18 +25,6 @@ const currency = new Intl.NumberFormat('en-IN', {
 
 const formatCurrency = (value) => currency.format(Number(value || 0));
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
-};
-
-const getDisplayName = (user) => {
-  const metadataName = user?.user_metadata?.full_name || user?.user_metadata?.name;
-  if (metadataName) return metadataName.split(' ')[0];
-  return user?.email?.split('@')[0] || 'there';
-};
 
 export default function Dashboard({ user }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -47,8 +35,6 @@ export default function Dashboard({ user }) {
   const spendRate = totalMonthlyIncome > 0 ? Math.min((expensesThisMonth / totalMonthlyIncome) * 100, 100) : 0;
   const remainingRate = totalMonthlyIncome > 0 ? Math.max((currentBalance / totalMonthlyIncome) * 100, 0) : 0;
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'SP';
-  const displayName = getDisplayName(user);
-  const greeting = getGreeting();
 
   // Visual Hierarchy Logic
   const hierarchy = useMemo(() => {
