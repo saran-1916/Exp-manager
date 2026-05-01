@@ -1,4 +1,4 @@
-package myspera.vercel.app;
+package com.stranz.spera;
 
 import com.getcapacitor.BridgeActivity;
 

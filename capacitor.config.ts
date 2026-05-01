@@ -1,9 +1,12 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'myspera.vercel.app',
+  appId: 'com.stranz.spera',
   appName: 'Spera',
   webDir: 'build',
+  server: {
+    androidScheme: 'https'
+  },
   plugins: {
     StatusBar: {
       style: 'LIGHT',
