@@ -61,6 +61,8 @@ const cardSx = {
   borderRadius: '24px',
   backgroundColor: '#FFFFFF',
   boxShadow: '0 18px 44px rgba(15, 23, 42, 0.04)',
+  maxWidth: '100%',
+  overflow: 'hidden',
   transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
   '&:hover': {
     transform: 'translateY(-2px)',
@@ -92,14 +94,40 @@ const sectionLabelSx = {
   fontSize: 10,
   fontWeight: 900,
   letterSpacing: '0.22em',
-  textTransform: 'uppercase'
+  maxWidth: '100%',
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  textTransform: 'uppercase',
+  whiteSpace: 'nowrap'
 };
 
 const sectionTitleSx = {
   color: '#000000',
   fontSize: { xs: 20, md: 24 },
   fontWeight: 900,
-  letterSpacing: '-0.02em'
+  letterSpacing: '-0.02em',
+  overflowWrap: 'anywhere'
+};
+
+const truncateTextSx = {
+  maxWidth: '100%',
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap'
+};
+
+const responsiveButtonTextSx = {
+  '& .MuiButton-startIcon': {
+    flexShrink: 0
+  },
+  '& .MuiButton-endIcon': {
+    flexShrink: 0
+  },
+  '& .MuiButton-icon': {
+    flexShrink: 0
+  }
 };
 
 const iconBoxSx = {
@@ -108,6 +136,7 @@ const iconBoxSx = {
   borderRadius: '14px',
   color: ACCENT,
   display: 'grid',
+  flexShrink: 0,
   height: 44,
   justifyContent: 'center',
   width: 44
@@ -171,7 +200,7 @@ const makeReminderPreview = (settings) => {
 
 const InfoRow = ({ label, value, dark = false }) => (
   <Box sx={{ minWidth: 0 }}>
-    <Typography sx={{ color: dark ? '#A1A1AA' : '#888888', fontSize: 10, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+    <Typography sx={{ ...truncateTextSx, color: dark ? '#A1A1AA' : '#888888', fontSize: 10, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
       {label}
     </Typography>
     <Typography sx={{ mt: 0.75, color: dark ? '#FFFFFF' : '#111111', fontSize: 13, fontWeight: 800, wordBreak: 'break-word' }}>
@@ -181,14 +210,14 @@ const InfoRow = ({ label, value, dark = false }) => (
 );
 
 const StatTile = ({ icon, label, value }) => (
-  <Box sx={{ border: `1px solid ${BORDER}`, borderRadius: '18px', p: 2.25 }}>
-    <Stack direction="row" alignItems="center" spacing={1.25}>
-      <Box sx={{ color: ACCENT, display: 'grid' }}>{icon}</Box>
-      <Typography sx={{ color: MUTED, fontSize: 10, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+  <Box sx={{ border: `1px solid ${BORDER}`, borderRadius: '18px', maxWidth: '100%', minWidth: 0, overflow: 'hidden', p: 2.25 }}>
+    <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
+      <Box sx={{ color: ACCENT, display: 'grid', flexShrink: 0 }}>{icon}</Box>
+      <Typography sx={{ ...truncateTextSx, color: MUTED, fontSize: 10, fontWeight: 900, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
         {label}
       </Typography>
     </Stack>
-    <Typography sx={{ mt: 1.5, color: '#000000', fontSize: { xs: 22, md: 26 }, fontWeight: 900, letterSpacing: '-0.03em' }}>
+    <Typography sx={{ mt: 1.5, color: '#000000', fontSize: { xs: 22, md: 26 }, fontWeight: 900, letterSpacing: '-0.03em', overflowWrap: 'anywhere' }}>
       {value}
     </Typography>
   </Box>
@@ -199,17 +228,27 @@ const SettingRow = ({ icon, title, subtitle, control }) => (
     direction="row"
     alignItems="center"
     justifyContent="space-between"
-    spacing={2}
-    sx={{ border: `1px solid ${BORDER}`, borderRadius: '16px', p: 2 }}
+    spacing={{ xs: 0.75, sm: 2 }}
+    sx={{
+      border: `1px solid ${BORDER}`,
+      borderRadius: '16px',
+      flexWrap: 'nowrap',
+      maxWidth: '100%',
+      minWidth: 0,
+      overflow: 'hidden',
+      p: { xs: 1.25, sm: 2 }
+    }}
   >
-    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ minWidth: 0 }}>
-      <Box sx={{ color: ACCENT, display: 'grid' }}>{icon}</Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ color: '#111111', fontSize: 14, fontWeight: 900 }}>{title}</Typography>
-        <Typography sx={{ color: MUTED, fontSize: 12, fontWeight: 600 }}>{subtitle}</Typography>
+    <Stack direction="row" alignItems="center" spacing={{ xs: 0.75, sm: 1.25 }} sx={{ flex: '1 1 0%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
+      <Box sx={{ color: ACCENT, display: 'grid', flexShrink: 0 }}>{icon}</Box>
+      <Box sx={{ flex: '1 1 0%', minWidth: 0, overflow: 'hidden' }}>
+        <Typography sx={{ ...truncateTextSx, color: '#111111', fontSize: { xs: 13, sm: 14 }, fontWeight: 900 }}>{title}</Typography>
+        <Typography sx={{ ...truncateTextSx, color: MUTED, fontSize: { xs: 11, sm: 12 }, fontWeight: 600 }}>{subtitle}</Typography>
       </Box>
     </Stack>
-    {control}
+    <Box sx={{ alignItems: 'center', display: 'flex', flex: '0 0 auto', justifyContent: 'flex-end', maxWidth: { xs: '40%', sm: '48%' }, minWidth: 0, overflow: 'hidden' }}>
+      {control}
+    </Box>
   </Stack>
 );
 
@@ -341,7 +380,7 @@ const ExpenseReminderCard = ({ reminderSettings, setReminderSettings, onSave, sa
             disabled={saving}
             startIcon={<SaveOutlinedIcon />}
             variant="contained"
-            sx={{ bgcolor: '#111111', borderRadius: '14px', fontWeight: 900, py: 1.25, textTransform: 'none', '&:hover': { bgcolor: ACCENT } }}
+            sx={{ ...responsiveButtonTextSx, bgcolor: '#111111', borderRadius: '14px', fontWeight: 900, maxWidth: '100%', overflow: 'hidden', py: 1.25, textTransform: 'none', '&:hover': { bgcolor: ACCENT } }}
           >
             {saving ? 'Saving...' : 'Save reminder'}
           </Button>
@@ -578,7 +617,7 @@ export default function Profile({ user }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-      <Container maxWidth="lg" sx={{ pb: 12, fontFamily: 'Inter, sans-serif' }}>
+      <Container maxWidth="lg" sx={{ maxWidth: '100%', overflow: 'hidden', pb: 12, px: { xs: 1, sm: 3 }, fontFamily: 'Inter, sans-serif' }}>
         <Stack spacing={3}>
           <Box>
             <Typography sx={sectionLabelSx}>Account settings</Typography>
@@ -593,13 +632,13 @@ export default function Profile({ user }) {
           <Card sx={{ ...cardSx, overflow: 'hidden' }}>
             <CardContent sx={{ p: { xs: 3, md: 4 } }}>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={3} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'flex-start' }}>
-                <Stack direction="row" spacing={2.5} alignItems="center">
-                  <Box sx={{ alignItems: 'center', backgroundColor: '#111111', borderRadius: '22px', color: '#FFFFFF', display: 'grid', height: 72, justifyContent: 'center', width: 72 }}>
+                <Stack direction="row" spacing={{ xs: 1.5, sm: 2.5 }} alignItems="center" sx={{ minWidth: 0 }}>
+                  <Box sx={{ alignItems: 'center', backgroundColor: '#111111', borderRadius: '22px', color: '#FFFFFF', display: 'grid', flexShrink: 0, height: { xs: 60, sm: 72 }, justifyContent: 'center', width: { xs: 60, sm: 72 } }}>
                     <AccountCircleOutlinedIcon sx={{ fontSize: 38 }} />
                   </Box>
                   <Box sx={{ minWidth: 0 }}>
                     <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                      <Typography sx={{ color: '#000000', fontSize: { xs: 24, md: 32 }, fontWeight: 900, letterSpacing: '-0.04em' }}>
+                      <Typography sx={{ ...truncateTextSx, color: '#000000', fontSize: { xs: 24, md: 32 }, fontWeight: 900, letterSpacing: '-0.04em' }}>
                         {profileForm.name || 'New user'}
                       </Typography>
                       <Chip
@@ -632,9 +671,12 @@ export default function Profile({ user }) {
                     color: '#111111',
                     fontSize: 12,
                     fontWeight: 900,
+                    maxWidth: '100%',
+                    overflow: 'hidden',
                     px: 2.5,
                     py: 1.35,
                     textTransform: 'none',
+                    ...responsiveButtonTextSx,
                     '&:hover': { borderColor: '#111111', backgroundColor: '#FAFAFA' }
                   }}
                 >
@@ -662,13 +704,13 @@ export default function Profile({ user }) {
                 <InfoRow label="Verification status" value={verified ? 'Verified account' : 'Email verification pending'} />
               </Box>
 
-              <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3 }}>
+                <Stack direction="row" justifyContent="flex-end" sx={{ mt: 3, minWidth: 0 }}>
                 <Button
                   onClick={handleSaveProfile}
                   disabled={savingKey === 'profile'}
                   startIcon={<SaveOutlinedIcon />}
                   variant="contained"
-                  sx={{ bgcolor: '#111111', borderRadius: '14px', fontWeight: 900, px: 2.5, py: 1.25, textTransform: 'none', '&:hover': { bgcolor: ACCENT } }}
+                  sx={{ ...responsiveButtonTextSx, bgcolor: '#111111', borderRadius: '14px', fontWeight: 900, maxWidth: '100%', overflow: 'hidden', px: 2.5, py: 1.25, textTransform: 'none', '&:hover': { bgcolor: ACCENT } }}
                 >
                   {savingKey === 'profile' ? 'Saving...' : 'Save profile'}
                 </Button>
@@ -679,14 +721,14 @@ export default function Profile({ user }) {
           <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' } }}>
             <Card sx={cardSx}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-                  <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 3, minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography sx={sectionLabelSx}>Quick insights</Typography>
                     <Typography sx={sectionTitleSx}>This month</Typography>
                   </Box>
-                  <Box sx={iconBoxSx}><SpeedOutlinedIcon /></Box>
+                  <Box sx={{ ...iconBoxSx, flexShrink: 0 }}><SpeedOutlinedIcon /></Box>
                 </Stack>
-                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' } }}>
+                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, minWidth: 0 }}>
                   <StatTile icon={<AccountBalanceWalletOutlinedIcon fontSize="small" />} label="Total expenses" value={formatMoney(insights.totalExpense)} />
                   <StatTile icon={<CategoryOutlinedIcon fontSize="small" />} label="Top category" value={insights.topCategory} />
                   <StatTile icon={<SpeedOutlinedIcon fontSize="small" />} label="Daily average" value={formatMoney(insights.averageDailySpend)} />
@@ -696,12 +738,12 @@ export default function Profile({ user }) {
 
             <Card sx={cardSx}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-                  <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 3, minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography sx={sectionLabelSx}>Preferences</Typography>
                     <Typography sx={sectionTitleSx}>Display controls</Typography>
                   </Box>
-                  <Box sx={iconBoxSx}><CurrencyRupeeOutlinedIcon /></Box>
+                  <Box sx={{ ...iconBoxSx, flexShrink: 0 }}><CurrencyRupeeOutlinedIcon /></Box>
                 </Stack>
                 <Stack spacing={2}>
                   <SettingRow
@@ -709,11 +751,19 @@ export default function Profile({ user }) {
                     title="Currency"
                     subtitle="Default account symbol"
                     control={
-                      <FormControl size="small" sx={{ minWidth: 112 }}>
+                      <FormControl size="small" sx={{ maxWidth: '100%', minWidth: { xs: 76, sm: 112 }, width: { xs: 76, sm: 112 } }}>
                         <Select
                           value={preferences.currency}
                           onChange={(event) => setPreferences((prev) => ({ ...prev, currency: event.target.value }))}
-                          sx={{ borderRadius: '12px', fontWeight: 900 }}
+                          sx={{
+                            borderRadius: '12px',
+                            fontWeight: 900,
+                            '& .MuiSelect-select': {
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }
+                          }}
                         >
                           <MenuItem value="₹">₹</MenuItem>
                           <MenuItem value="Rs.">Rs.</MenuItem>
@@ -749,7 +799,7 @@ export default function Profile({ user }) {
                     disabled={savingKey === 'settings'}
                     startIcon={<SaveOutlinedIcon />}
                     variant="contained"
-                    sx={{ bgcolor: '#111111', borderRadius: '14px', fontWeight: 900, py: 1.25, textTransform: 'none', '&:hover': { bgcolor: ACCENT } }}
+                    sx={{ ...responsiveButtonTextSx, bgcolor: '#111111', borderRadius: '14px', fontWeight: 900, maxWidth: '100%', overflow: 'hidden', py: 1.25, textTransform: 'none', '&:hover': { bgcolor: ACCENT } }}
                   >
                     {savingKey === 'settings' ? 'Saving...' : 'Save preferences'}
                   </Button>
@@ -768,8 +818,8 @@ export default function Profile({ user }) {
 
             <Card sx={cardSx}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-                  <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 3, minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography sx={sectionLabelSx}>Data and privacy</Typography>
                     <Typography sx={sectionTitleSx}>Ownership tools</Typography>
                   </Box>
@@ -781,7 +831,7 @@ export default function Profile({ user }) {
                     disabled={savingKey === 'export'}
                     startIcon={<DownloadOutlinedIcon />}
                     variant="outlined"
-                    sx={{ borderColor: BORDER, borderRadius: '14px', color: '#111111', fontWeight: 900, justifyContent: 'flex-start', py: 1.4, textTransform: 'none' }}
+                    sx={{ ...responsiveButtonTextSx, borderColor: BORDER, borderRadius: '14px', color: '#111111', fontWeight: 900, justifyContent: 'flex-start', maxWidth: '100%', overflow: 'hidden', py: 1.4, textTransform: 'none' }}
                   >
                     Export data as CSV
                   </Button>
@@ -789,7 +839,7 @@ export default function Profile({ user }) {
                     onClick={() => setResetOpen(true)}
                     startIcon={<RestartAltOutlinedIcon />}
                     variant="outlined"
-                    sx={{ borderColor: '#FECACA', borderRadius: '14px', color: '#DC2626', fontWeight: 900, justifyContent: 'flex-start', py: 1.4, textTransform: 'none' }}
+                    sx={{ ...responsiveButtonTextSx, borderColor: '#FECACA', borderRadius: '14px', color: '#DC2626', fontWeight: 900, justifyContent: 'flex-start', maxWidth: '100%', overflow: 'hidden', py: 1.4, textTransform: 'none' }}
                   >
                     Reset all data
                   </Button>
@@ -797,7 +847,7 @@ export default function Profile({ user }) {
                     disabled
                     startIcon={<BackupOutlinedIcon />}
                     variant="outlined"
-                    sx={{ borderColor: BORDER, borderRadius: '14px', fontWeight: 900, justifyContent: 'flex-start', py: 1.4, textTransform: 'none' }}
+                    sx={{ ...responsiveButtonTextSx, borderColor: BORDER, borderRadius: '14px', fontWeight: 900, justifyContent: 'flex-start', maxWidth: '100%', overflow: 'hidden', py: 1.4, textTransform: 'none' }}
                   >
                     Backup and Restore - coming soon
                   </Button>
@@ -809,14 +859,14 @@ export default function Profile({ user }) {
           <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' } }}>
             <Card sx={{ ...cardSx, bgcolor: '#111111', color: '#FFFFFF' }}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-                  <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 3, minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography sx={{ ...sectionLabelSx, color: '#A1A1AA' }}>System info</Typography>
                     <Typography sx={{ ...sectionTitleSx, color: '#FFFFFF' }}>Runtime details</Typography>
                   </Box>
                   <Box sx={{ ...iconBoxSx, bgcolor: 'rgba(255,255,255,0.08)' }}><CloudSyncOutlinedIcon /></Box>
                 </Stack>
-                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' } }}>
+                <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, minWidth: 0 }}>
                   <Box><InfoRow dark label="User ID" value={user?.id} /></Box>
                   <Box><InfoRow dark label="Auth provider" value={provider} /></Box>
                   <Box><InfoRow dark label="App version" value={APP_VERSION} /></Box>
@@ -827,8 +877,8 @@ export default function Profile({ user }) {
 
             <Card sx={{ ...cardSx, borderColor: '#FECACA' }}>
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                  <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 2, minWidth: 0 }}>
+                  <Box sx={{ minWidth: 0 }}>
                     <Typography sx={{ ...sectionLabelSx, color: '#DC2626' }}>Danger zone</Typography>
                     <Typography sx={sectionTitleSx}>Delete account</Typography>
                   </Box>
@@ -841,7 +891,7 @@ export default function Profile({ user }) {
                   onClick={() => setDeleteOpen(true)}
                   startIcon={<DeleteForeverOutlinedIcon />}
                   variant="contained"
-                  sx={{ bgcolor: '#DC2626', borderRadius: '14px', fontWeight: 900, py: 1.35, textTransform: 'none', '&:hover': { bgcolor: '#B91C1C' } }}
+                  sx={{ ...responsiveButtonTextSx, bgcolor: '#DC2626', borderRadius: '14px', fontWeight: 900, maxWidth: '100%', overflow: 'hidden', py: 1.35, textTransform: 'none', '&:hover': { bgcolor: '#B91C1C' } }}
                 >
                   Delete account
                 </Button>

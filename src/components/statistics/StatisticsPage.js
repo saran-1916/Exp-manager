@@ -36,6 +36,44 @@ const CHART_COLORS = ['#2563EB', '#111111', '#EF4444', '#10B981', '#F59E0B', '#8
 const ACCENT_COLOR = '#2563EB';
 const AXIS_TICK = { fontSize: 11, fill: '#888888', fontWeight: 700, fontFamily: 'Inter, sans-serif' };
 
+// Hook to detect if screen is mobile
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+};
+
+// Calculate responsive interval for X-axis labels
+const getResponsiveInterval = (dataLength, isMobile, periodMode) => {
+  if (!isMobile) return 0; // Show all labels on desktop
+
+  // For daily view, show every 5th label
+  if (periodMode === 'day') {
+    return Math.ceil(dataLength / 6) - 1; // Aim for ~6 labels
+  }
+
+  // For other views, show every 2nd or 3rd label
+  if (dataLength > 12) return 2; // Every 3rd label
+  if (dataLength > 6) return 1;  // Every 2nd label
+  return 0; // Show all
+};
+
+// Get responsive tick styling
+const getResponsiveTickStyle = (isMobile) => ({
+  fontSize: isMobile ? 10 : 11,
+  fill: '#888888',
+  fontWeight: 700,
+  fontFamily: 'Inter, sans-serif',
+  angle: isMobile ? -45 : 0,
+  textAnchor: isMobile ? 'end' : 'middle'
+});
+
 const amountFormat = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 0
 });
@@ -60,15 +98,6 @@ const periodConfig = {
     sub: subMonths,
     title: (date) => format(date, 'MMMM yyyy'),
     previousLabel: 'Previous month'
-  },
-  month: {
-    label: 'Month',
-    start: startOfYear,
-    end: endOfYear,
-    add: addYears,
-    sub: subYears,
-    title: (date) => format(date, 'yyyy'),
-    previousLabel: 'Previous year'
   },
   year: {
     label: 'Year',
@@ -126,7 +155,7 @@ const makeSpendingBuckets = (mode, periodStart, periodEnd) => {
     return buckets;
   }
 
-  if (mode === 'month' || mode === 'year') {
+  if (mode === 'year') {
     return eachMonthOfInterval({ start: periodStart, end: periodEnd }).map(month => ({
       name: format(month, 'MMM'),
       dateLabel: format(month, 'MMMM yyyy'),
@@ -172,11 +201,12 @@ const CategoryTooltip = ({ active, payload }) => {
 };
 
 export default function StatisticsPage({ user }) {
-  const [periodMode, setPeriodMode] = useState('month');
+  const [periodMode, setPeriodMode] = useState('day');
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [currentTransactions, setCurrentTransactions] = useState([]);
   const [previousTransactions, setPreviousTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   const activeConfig = periodConfig[periodMode];
   const currentRange = useMemo(() => getPeriodRange(periodMode, anchorDate), [periodMode, anchorDate]);
@@ -260,12 +290,12 @@ export default function StatisticsPage({ user }) {
       <header className="space-y-5">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#71717A]">Premium insights</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-black md:text-4xl">Statistics</h1>
-          <p className="mt-2 text-sm font-bold text-[#71717A]">{activeConfig.title(anchorDate)}</p>
+          <h1 className="mt-2 truncate text-3xl font-black tracking-tight text-black md:text-4xl">Statistics</h1>
+          <p className="mt-2 truncate text-sm font-bold text-[#71717A]">{activeConfig.title(anchorDate)}</p>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div className="grid grid-cols-4 rounded-2xl border border-[#F0F0F0] bg-white p-1">
+          <div className="grid grid-cols-3 rounded-2xl border border-[#F0F0F0] bg-white p-1">
             {Object.entries(periodConfig).map(([key, config]) => (
               <button
                 key={key}
@@ -317,11 +347,11 @@ export default function StatisticsPage({ user }) {
 
       <Card className="border border-[#F0F0F0] bg-white p-6 md:p-8">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Main chart</p>
-            <h3 className="mt-1 text-2xl font-black tracking-tight text-black">Discrete spending</h3>
+            <h3 className="mt-1 truncate text-2xl font-black tracking-tight text-black">Discrete spending</h3>
           </div>
-          <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#EAF4FF] text-[#2563EB]">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#EAF4FF] text-[#2563EB]">
             <TrendingUp size={20} strokeWidth={1.7} />
           </div>
         </div>
@@ -331,13 +361,35 @@ export default function StatisticsPage({ user }) {
         ) : !hasData ? (
           <NoDataState />
         ) : (
-          <div className="h-[360px] w-full">
+          <div className="h-[360px] w-full overflow-hidden rounded-lg" style={{ paddingBottom: isMobile ? '20px' : '0px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={spendingData} barCategoryGap="42%">
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={AXIS_TICK} interval={0} />
-                <YAxis axisLine={false} tickLine={false} tick={AXIS_TICK} tickFormatter={(value) => `Rs. ${amountFormat.format(value)}`} width={72} />
+              <BarChart 
+                data={spendingData} 
+                barCategoryGap={isMobile ? "35%" : "42%"}
+                margin={{ 
+                  left: 0, 
+                  right: 0, 
+                  top: 0, 
+                  bottom: isMobile ? 60 : 20 
+                }}
+              >
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={getResponsiveTickStyle(isMobile)}
+                  interval={getResponsiveInterval(spendingData.length, isMobile, periodMode)}
+                  height={isMobile ? 80 : 40}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={AXIS_TICK} 
+                  tickFormatter={(value) => `Rs. ${amountFormat.format(value)}`} 
+                  width={72} 
+                />
                 <Tooltip cursor={{ fill: '#FAFAFA' }} content={<SpendingTooltip />} />
-                <Bar dataKey="expense" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]} barSize={18} />
+                <Bar dataKey="expense" fill={ACCENT_COLOR} radius={[4, 4, 0, 0]} barSize={isMobile ? 14 : 18} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -347,11 +399,11 @@ export default function StatisticsPage({ user }) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="relative border border-[#F0F0F0] bg-white p-6 md:p-8">
           <div className="mb-8 flex items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Breakdown</p>
-              <h3 className="mt-1 text-2xl font-black tracking-tight text-black">Category donut</h3>
+              <h3 className="mt-1 truncate text-2xl font-black tracking-tight text-black">Category donut</h3>
             </div>
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#F8F8F8] text-black">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#F8F8F8] text-black">
               <PieChartIcon size={20} strokeWidth={1.7} />
             </div>
           </div>
@@ -377,9 +429,9 @@ export default function StatisticsPage({ user }) {
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {donutData.map((item, index) => (
                   <div key={item.name} className="flex items-center gap-2 rounded-full border border-[#F0F0F0] bg-white px-3 py-1.5">
-                    <CategoryIcon iconSlug={item.iconSlug} className="h-7 w-7 rounded-lg bg-[#111111] text-white" size={13} />
-                    <span className="text-[10px] font-black uppercase tracking-tight text-[#71717A]">{item.name}</span>
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
+                    <CategoryIcon iconSlug={item.iconSlug} className="h-7 w-7 shrink-0 rounded-lg bg-[#111111] text-white" size={13} />
+                    <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-tight text-[#71717A]">{item.name}</span>
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
                   </div>
                 ))}
               </div>
@@ -389,11 +441,11 @@ export default function StatisticsPage({ user }) {
 
         <Card className="border border-[#F0F0F0] bg-white p-6 md:p-8">
           <div className="mb-8 flex items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Top spenders</p>
-              <h3 className="mt-1 text-2xl font-black tracking-tight text-black">Top 5 Categories</h3>
+              <h3 className="mt-1 truncate text-2xl font-black tracking-tight text-black">Top 5 Categories</h3>
             </div>
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#F8F8F8] text-black">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#F8F8F8] text-black">
               <BarChart3 size={20} strokeWidth={1.7} />
             </div>
           </div>

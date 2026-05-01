@@ -52,6 +52,39 @@
     box-shadow: none;
   }
 
+  .spera-truncate {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .spera-truncate-flex {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 0%;
+    overflow: hidden;
+  }
+
+  .spera-truncate-label {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: clamp(0.625rem, 2.2vw, 0.75rem);
+  }
+
+  .spera-truncate-button {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: clamp(0.75rem, 2.5vw, 0.875rem);
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
   }
@@ -156,6 +189,6 @@ textarea:focus-visible {
 
 @media (max-width: 767px) {
   main {
-    padding: 16px 16px 112px !important;
+    padding: 16px 16px calc(8rem + env(safe-area-inset-bottom)) !important;
   }
 }

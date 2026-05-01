@@ -110,15 +110,15 @@ export default function Dashboard({ user }) {
       <section className="bg-white px-4 pb-8 pt-6 text-black md:px-10 md:pb-10 md:pt-10">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#F0F0F0] bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-[#71717A]">
+            <div className="spera-truncate-flex">
+              <div className="mb-4 inline-flex max-w-full items-center gap-2 overflow-hidden rounded-full border border-[#F0F0F0] bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-[#71717A]">
                 <Sparkles size={14} className="text-[#0077FF]" />
-                {greeting}
+                <span className="spera-truncate-label">{greeting}</span>
               </div>
-              <h1 className="truncate text-3xl font-black tracking-tight text-black sm:text-4xl">
+              <h1 className="spera-truncate text-3xl font-black tracking-tight text-black sm:text-4xl">
                 Welcome, {displayName}
               </h1>
-              <p className="mt-2 text-sm font-semibold text-[#71717A]">Here is your money snapshot for this month.</p>
+              <p className="spera-truncate mt-2 text-sm font-semibold text-[#71717A]">Here is your money snapshot for this month.</p>
             </div>
 
             <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#F0F0F0] bg-white p-2 sm:justify-start">
@@ -129,9 +129,9 @@ export default function Dashboard({ user }) {
               >
                 <ChevronLeft size={20} />
               </button>
-              <div className="min-w-0 px-2 text-center sm:min-w-[190px]">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#71717A]">Statement</p>
-                <h2 className="truncate text-base font-black text-black">{format(currentDate, 'MMMM yyyy')}</h2>
+              <div className="min-w-0 max-w-[190px] flex-1 px-2 text-center sm:min-w-[190px]">
+                <p className="spera-truncate-label font-black uppercase tracking-[0.25em] text-[#71717A]">Statement</p>
+                <h2 className="spera-truncate text-base font-black text-black">{format(currentDate, 'MMMM yyyy')}</h2>
               </div>
               <button
                 onClick={() => setCurrentDate(addMonths(currentDate, 1))}
@@ -150,9 +150,9 @@ export default function Dashboard({ user }) {
                   <div className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/5 text-[#0077FF] sm:h-12 sm:w-12">
                     <CreditCard size={22} strokeWidth={1.7} />
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Spera card</p>
-                    <p className="text-sm font-bold text-zinc-300">Monthly account</p>
+                  <div className="spera-truncate-flex">
+                    <p className="spera-truncate-label font-black uppercase tracking-[0.3em] text-zinc-500">Spera card</p>
+                    <p className="spera-truncate text-sm font-bold text-zinc-300">Monthly account</p>
                   </div>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black text-zinc-200">
@@ -161,14 +161,14 @@ export default function Dashboard({ user }) {
               </div>
 
               <div className="pt-8">
-                <p className="text-xs font-black uppercase tracking-[0.32em] text-zinc-500">Current balance</p>
+                <p className="spera-truncate-label font-black uppercase tracking-[0.32em] text-zinc-500">Current balance</p>
                 <h2 className={`mt-3 break-words text-4xl font-black tracking-tight sm:text-6xl ${currentBalance < 0 ? 'text-rose-300' : 'text-white'}`}>
                   {formatCurrency(currentBalance)}
                 </h2>
                 <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
                   {heroStats.map((stat) => (
-                    <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4">
-                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-zinc-500 sm:text-[10px]">{stat.label}</p>
+                    <div key={stat.label} className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4">
+                      <p className="spera-truncate-label font-black uppercase tracking-[0.16em] text-zinc-500">{stat.label}</p>
                       <p className={`mt-2 break-words text-sm font-black sm:text-base ${stat.tone}`}>{stat.value}</p>
                     </div>
                   ))}
@@ -177,26 +177,26 @@ export default function Dashboard({ user }) {
             </div>
 
             <div className="rounded-[28px] border border-[#F0F0F0] bg-white p-5">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Available</p>
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div className="spera-truncate-flex">
+                  <p className="spera-truncate-label font-black uppercase tracking-[0.28em] text-[#71717A]">Available</p>
                   <p className="mt-1 text-4xl font-black tracking-tight text-black">{remainingRate.toFixed(0)}%</p>
                 </div>
                 <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#EAF4FF] text-[#0077FF]">
                   <Wallet size={21} strokeWidth={1.7} />
                 </div>
               </div>
-              <div className="mb-2 flex items-center justify-between text-xs font-bold text-[#71717A]">
-                <span>Used this month</span>
-                <span className="text-black">{spendRate.toFixed(0)}%</span>
+              <div className="mb-2 flex items-center justify-between gap-3 text-xs font-bold text-[#71717A]">
+                <span className="spera-truncate">Used this month</span>
+                <span className="shrink-0 text-black">{spendRate.toFixed(0)}%</span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-[#F4F4F5]">
                 <div className="h-full rounded-full bg-[#0077FF]" style={{ width: `${spendRate}%` }} />
               </div>
-              <div className="mt-4 flex items-center gap-2 rounded-2xl border border-[#F0F0F0] px-4 py-3 text-black">
+              <div className="mt-4 flex max-w-full items-center gap-2 overflow-hidden rounded-2xl border border-[#F0F0F0] px-4 py-3 text-black">
                 <CalendarDays size={18} className="text-[#0077FF]" />
-                <span className="text-sm font-black">{format(currentDate, 'MMM yyyy')}</span>
-                <span className="ml-auto text-xs font-bold text-[#71717A]">{monthlyTransactions.length} entries</span>
+                <span className="spera-truncate-button font-black">{format(currentDate, 'MMM yyyy')}</span>
+                <span className="ml-auto shrink-0 text-xs font-bold text-[#71717A]">{monthlyTransactions.length} entries</span>
               </div>
             </div>
           </div>
@@ -207,11 +207,11 @@ export default function Dashboard({ user }) {
         <div className="mx-auto max-w-7xl space-y-6">
           <Card className="border border-[#F0F0F0] p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Actions</p>
-                <h3 className="mt-1 text-xl font-black tracking-tight text-black">Quick access</h3>
+              <div className="min-w-0 flex-1">
+                <p className="spera-truncate-label font-black uppercase tracking-[0.28em] text-[#71717A]">Actions</p>
+                <h3 className="spera-truncate mt-1 text-xl font-black tracking-tight text-black">Quick access</h3>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#EAF4FF] text-[#0077FF]">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#EAF4FF] text-[#0077FF]">
                 <Sparkles size={18} strokeWidth={1.7} />
               </div>
             </div>
@@ -220,12 +220,16 @@ export default function Dashboard({ user }) {
                 <Link
                   key={action.path}
                   to={action.path}
-                  className={`flex min-h-[72px] items-center gap-3 rounded-xl border border-[#F0F0F0] p-4 font-black transition active:scale-[0.98] ${action.path === '/form' ? 'bg-[#0077FF] text-white' : 'bg-white text-black'}`}
+                  className={`flex min-h-[72px] min-w-0 max-w-full flex-1 flex-col items-start justify-center gap-2 overflow-hidden rounded-xl border border-[#F0F0F0] p-4 font-black transition active:scale-[0.98] ${action.path === '/form' ? 'bg-[#0077FF] text-white' : 'bg-white text-black'}`}
                 >
                   <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${action.path === '/form' ? 'bg-white/15' : 'bg-[#F8F8F8] text-[#0077FF]'}`}>
                     <action.icon size={19} strokeWidth={1.7} />
                   </span>
-                  <span className="min-w-0 text-sm">{action.label}</span>
+                  <span 
+                    className="spera-truncate-button w-full"
+                  >
+                    {action.label}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -234,11 +238,11 @@ export default function Dashboard({ user }) {
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.72fr]">
             <Card className="border border-[#F0F0F0] p-5 sm:p-8">
               <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Analysis</p>
-                  <h3 className="mt-1 text-2xl font-black tracking-tight text-black">Monthly spending</h3>
+                <div className="min-w-0 flex-1">
+                  <p className="spera-truncate-label font-black uppercase tracking-[0.28em] text-[#71717A]">Analysis</p>
+                  <h3 className="spera-truncate mt-1 text-2xl font-black tracking-tight text-black">Monthly spending</h3>
                 </div>
-                <div className="rounded-xl border border-[#F0F0F0] bg-white px-4 py-2 text-sm font-black text-black">
+                <div className="spera-truncate-button shrink-0 rounded-xl border border-[#F0F0F0] bg-white px-4 py-2 font-black text-black">
                   {formatCurrency(expensesThisMonth)}
                 </div>
               </div>
@@ -257,12 +261,12 @@ export default function Dashboard({ user }) {
                         <div className="flex items-end justify-between gap-4">
                           <div className="flex min-w-0 items-center gap-3">
                             <CategoryIcon iconSlug={data.iconSlug} className="h-10 w-10 bg-[#111111] text-white" />
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-black uppercase tracking-tight text-black">{data.cat}</p>
-                              <p className="mt-1 text-xs font-semibold text-[#71717A]">{data.subs.length} subcategories</p>
+                            <div className="spera-truncate-flex">
+                              <p className="spera-truncate-button font-black uppercase tracking-tight text-black">{data.cat}</p>
+                              <p className="spera-truncate mt-1 text-xs font-semibold text-[#71717A]">{data.subs.length} subcategories</p>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="min-w-0 max-w-[45%] shrink-0 text-right">
                             <p className="text-base font-black text-black">{formatCurrency(data.total)}</p>
                             <p className="text-xs font-black text-[#71717A]">{perc}%</p>
                           </div>
@@ -272,7 +276,7 @@ export default function Dashboard({ user }) {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {data.subs.map(([sub, val]) => (
-                            <div key={sub} className="rounded-full border border-[#F0F0F0] bg-white px-3 py-1 text-[11px] font-black uppercase tracking-tight text-[#71717A]">
+                            <div key={sub} className="spera-truncate max-w-full rounded-full border border-[#F0F0F0] bg-white px-3 py-1 text-[11px] font-black uppercase tracking-tight text-[#71717A]">
                               {sub}: {formatCurrency(val)}
                             </div>
                           ))}
@@ -286,11 +290,11 @@ export default function Dashboard({ user }) {
 
             <Card className="border border-[#F0F0F0] p-5 sm:p-8">
               <div className="mb-6 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#71717A]">Activity</p>
-                  <h3 className="mt-1 text-2xl font-black tracking-tight text-black">Recent entries</h3>
+                <div className="min-w-0 flex-1">
+                  <p className="spera-truncate-label font-black uppercase tracking-[0.28em] text-[#71717A]">Activity</p>
+                  <h3 className="spera-truncate mt-1 text-2xl font-black tracking-tight text-black">Recent entries</h3>
                 </div>
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#EAF4FF] text-[#0077FF]">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#EAF4FF] text-[#0077FF]">
                   <CreditCard size={20} strokeWidth={1.7} />
                 </div>
               </div>
@@ -312,13 +316,13 @@ export default function Dashboard({ user }) {
                             <ArrowDownLeft size={19} strokeWidth={1.7} />
                           </div>
                         ) : (
-                          <CategoryIcon iconSlug={transaction.categories?.icon_slug} className="h-11 w-11 bg-[#111111] text-white" size={19} />
+                          <CategoryIcon iconSlug={transaction.categories?.icon_slug} className="h-11 w-11 shrink-0 bg-[#111111] text-white" size={19} />
                         )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-black text-black">{transaction.categories?.name || transaction.description || 'Transaction'}</p>
-                          <p className="mt-0.5 text-xs font-bold text-[#71717A]">{format(new Date(transaction.date), 'dd MMM yyyy')}</p>
+                        <div className="spera-truncate-flex">
+                          <p className="spera-truncate-button font-black text-black">{transaction.categories?.name || transaction.description || 'Transaction'}</p>
+                          <p className="spera-truncate mt-0.5 text-xs font-bold text-[#71717A]">{format(new Date(transaction.date), 'dd MMM yyyy')}</p>
                         </div>
-                        <p className={`text-sm font-black ${isCredit ? 'text-emerald-600' : 'text-black'}`}>
+                        <p className={`shrink-0 text-sm font-black ${isCredit ? 'text-emerald-600' : 'text-black'}`}>
                           {isCredit ? '+' : '-'}{formatCurrency(amount)}
                         </p>
                       </div>

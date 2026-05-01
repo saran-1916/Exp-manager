@@ -70,8 +70,8 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
         </div>
       </div>
     </aside>
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#F0F0F0] bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden">
-      <div className="mx-auto grid w-full max-w-md grid-cols-5 items-end gap-0.5">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 max-w-[100vw] overflow-hidden border-t border-[#F0F0F0] bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden">
+      <div className="mx-auto flex w-full max-w-[420px] items-end justify-between gap-1">
         {mobileNavItems.map((item) => {
           const active = location.pathname === item.path;
           const Icon = item.icon;
@@ -79,14 +79,14 @@ const Sidebar = ({ user, onLogout, collapsed, setCollapsed }) => {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex min-w-0 flex-col items-center justify-center rounded-xl font-black transition-all active:scale-[0.96] ${
+            className={`flex min-w-0 max-w-[4.5rem] flex-1 flex-col items-center justify-center overflow-hidden rounded-xl font-black transition-all active:scale-[0.96] ${
               item.featured
-                ? `mx-auto h-16 w-16 -translate-y-2 gap-1 bg-[#0077FF] text-white shadow-[0_16px_35px_rgba(0,119,255,0.25)] ${active ? 'ring-4 ring-[#EAF4FF]' : ''}`
-                : `h-14 gap-1 text-[9px] ${active ? 'bg-[#EAF4FF] text-[#0077FF]' : 'text-[#71717A]'}`
+                ? `h-14 max-w-[3.75rem] -translate-y-1 gap-0.5 bg-[#0077FF] text-white shadow-[0_12px_28px_rgba(0,119,255,0.22)] ${active ? 'ring-4 ring-[#EAF4FF]' : ''}`
+                : `h-12 gap-0.5 px-1 text-[10px] ${active ? 'bg-[#EAF4FF] text-[#0077FF]' : 'text-[#71717A]'}`
             }`}
           >
-            <Icon size={item.featured ? 23 : 18} strokeWidth={1.8} />
-            <span className={`max-w-full truncate px-0.5 leading-none ${item.featured ? 'text-[10px]' : 'text-[9px]'}`}>{item.label}</span>
+            <Icon size={item.featured ? 21 : 17} strokeWidth={1.8} className="shrink-0" />
+            <span className={`max-w-full overflow-hidden text-ellipsis whitespace-nowrap px-0.5 leading-none ${item.featured ? 'text-[10px]' : 'text-[10px]'}`}>{item.label}</span>
           </Link>
           );
         })}

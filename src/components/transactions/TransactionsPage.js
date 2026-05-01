@@ -36,39 +36,69 @@ const pdfNumber = new Intl.NumberFormat('en-IN', {
 });
 
 const formatPdfCurrency = (value) => `Rs. ${pdfNumber.format(Number(value || 0))}`;
+const sanitizePdfText = (value) => String(value ?? '').replace(/\u20b9/g, 'Rs.');
 
 export default function TransactionsPage({ user, onEdit }) {
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
+  const [useCustomStatementRange, setUseCustomStatementRange] = useState(false);
+  const [statementStartDate, setStatementStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [statementEndDate, setStatementEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
 
-  const fetchMonthTransactions = useCallback(async () => {
+  const statementRange = useMemo(() => {
+    const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd');
+    const monthEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
+
+    if (!useCustomStatementRange) {
+      return { start: monthStart, end: monthEnd };
+    }
+
+    const start = statementStartDate || monthStart;
+    const end = statementEndDate || start;
+
+    return {
+      start,
+      end: end < start ? start : end
+    };
+  }, [selectedMonth, statementEndDate, statementStartDate, useCustomStatementRange]);
+
+  const statementLabel = useMemo(() => {
+    if (!useCustomStatementRange) {
+      return format(selectedMonth, 'MMMM yyyy');
+    }
+
+    const fromLabel = format(parseISO(statementRange.start), 'dd MMM yyyy');
+    const toLabel = format(parseISO(statementRange.end), 'dd MMM yyyy');
+
+    return statementRange.start === statementRange.end ? fromLabel : `${fromLabel} to ${toLabel}`;
+  }, [selectedMonth, statementRange.end, statementRange.start, useCustomStatementRange]);
+
+  const fetchStatementTransactions = useCallback(async () => {
     if (!user?.id) return;
 
     setLoading(true);
-    const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd');
-    const monthEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
 
     const { data, error } = await supabase
       .from('transactions')
       .select(`*, categories(name, type, icon_slug), subcategories(name)`)
       .eq('user_id', user.id)
-      .gte('date', monthStart)
-      .lte('date', monthEnd)
+      .gte('date', statementRange.start)
+      .lte('date', statementRange.end)
       .order('date', { ascending: false });
 
     if (!error) setTransactions(data || []);
     setLoading(false);
-  }, [selectedMonth, user?.id]);
+  }, [statementRange.end, statementRange.start, user?.id]);
 
   useEffect(() => {
-    fetchMonthTransactions();
-  }, [fetchMonthTransactions]);
+    fetchStatementTransactions();
+  }, [fetchStatementTransactions]);
 
   const filteredTransactions = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -82,12 +112,12 @@ export default function TransactionsPage({ user, onEdit }) {
       ].filter(Boolean).join(' ').toLowerCase();
       const matchesSearch = !query || text.includes(query);
       const matchesCategory = selectedCategory === 'all' || t.categories?.name === selectedCategory;
-      const matchesStartDate = !startDate || t.date >= startDate;
-      const matchesEndDate = !endDate || t.date <= endDate;
+      const matchesStartDate = !filterStartDate || t.date >= filterStartDate;
+      const matchesEndDate = !filterEndDate || t.date <= filterEndDate;
 
       return matchesSearch && matchesCategory && matchesStartDate && matchesEndDate;
     });
-  }, [transactions, searchTerm, selectedCategory, startDate, endDate]);
+  }, [transactions, searchTerm, selectedCategory, filterStartDate, filterEndDate]);
 
   const uniqueCategories = useMemo(() => {
     const cats = transactions.map(t => t.categories?.name).filter(Boolean);
@@ -116,16 +146,58 @@ export default function TransactionsPage({ user, onEdit }) {
   const handleDelete = async (id) => {
     if (window.confirm('Permanently delete this record?')) {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (!error) fetchMonthTransactions();
+      if (!error) fetchStatementTransactions();
     }
+  };
+
+  const handleCustomStatementRangeChange = (checked) => {
+    setUseCustomStatementRange(checked);
+
+    if (checked) {
+      setStatementStartDate(format(startOfMonth(selectedMonth), 'yyyy-MM-dd'));
+      setStatementEndDate(format(endOfMonth(selectedMonth), 'yyyy-MM-dd'));
+    }
+  };
+
+  const handleStatementStartDateChange = (value) => {
+    setStatementStartDate(value);
+
+    if (value && statementEndDate && statementEndDate < value) {
+      setStatementEndDate(value);
+    }
+  };
+
+  const handleStatementEndDateChange = (value) => {
+    if (value && statementStartDate && value < statementStartDate) {
+      setStatementEndDate(statementStartDate);
+      return;
+    }
+
+    setStatementEndDate(value);
+  };
+
+  const handleFilterStartDateChange = (value) => {
+    setFilterStartDate(value);
+
+    if (value && filterEndDate && filterEndDate < value) {
+      setFilterEndDate(value);
+    }
+  };
+
+  const handleFilterEndDateChange = (value) => {
+    if (value && filterStartDate && value < filterStartDate) {
+      setFilterEndDate(filterStartDate);
+      return;
+    }
+
+    setFilterEndDate(value);
   };
 
   const downloadStatement = () => {
     const doc = new jsPDF();
-    const monthName = format(selectedMonth, 'MMMM');
-    const statementMonth = format(selectedMonth, 'MMM').toUpperCase();
-    const year = format(selectedMonth, 'yyyy');
-    const fileName = `SPERA_STMT_${statementMonth}_${year}.pdf`;
+    const statementStart = statementRange.start;
+    const statementEnd = statementRange.end;
+    const fileName = `SPERA_STMT_${statementStart}_${statementEnd}.pdf`;
 
     doc.setFillColor(17, 17, 17);
     doc.rect(0, 0, 210, 42, 'F');
@@ -135,7 +207,7 @@ export default function TransactionsPage({ user, onEdit }) {
     doc.text('SPERA', 16, 18);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(`${monthName} ${year} Statement`, 16, 29);
+    doc.text(sanitizePdfText(`${statementLabel} Statement`), 16, 29);
 
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
@@ -155,7 +227,7 @@ export default function TransactionsPage({ user, onEdit }) {
       doc.text(label, 16, y);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
-      doc.text(value, 194, y, { align: 'right' });
+      doc.text(sanitizePdfText(value), 194, y, { align: 'right' });
       y += 9;
     });
 
@@ -175,12 +247,12 @@ export default function TransactionsPage({ user, onEdit }) {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(0, 0, 0);
-      doc.text(t.description || t.categories?.name || 'Transaction', 16, y);
-      doc.text(`${isCredit ? '+' : '-'} ${formatPdfCurrency(amount)}`, 194, y, { align: 'right' });
+      doc.text(sanitizePdfText(t.description || t.categories?.name || 'Transaction'), 16, y);
+      doc.text(sanitizePdfText(`${isCredit ? '+' : '-'} ${formatPdfCurrency(amount)}`), 194, y, { align: 'right' });
       y += 5;
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(113, 113, 122);
-      doc.text(`${format(parseISO(t.date), 'dd MMM yyyy')}  |  ${t.categories?.name || 'General'} / ${t.subcategories?.name || 'Other'}`, 16, y);
+      doc.text(sanitizePdfText(`${format(parseISO(t.date), 'dd MMM yyyy')}  |  ${t.categories?.name || 'General'} / ${t.subcategories?.name || 'Other'}`), 16, y);
       y += 10;
     });
 
@@ -200,41 +272,82 @@ export default function TransactionsPage({ user, onEdit }) {
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[#71717A]">Ledger timeline</p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-black md:text-4xl">Transaction History</h1>
-            <p className="mt-2 text-sm font-bold text-[#71717A]">{format(selectedMonth, 'MMMM yyyy')} statement view</p>
+            <p className="mt-2 text-sm font-bold text-[#71717A]">{statementLabel} statement view</p>
           </div>
 
-          <button
-            onClick={downloadStatement}
-            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black px-5 text-sm font-black text-white transition active:scale-[0.98]"
-          >
-            <Download size={17} strokeWidth={1.7} />
-            Download Statement
-          </button>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            <label className="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#F0F0F0] bg-white px-4 text-sm font-black text-black transition hover:border-[#D4D4D8]">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-black"
+                checked={useCustomStatementRange}
+                onChange={(e) => handleCustomStatementRangeChange(e.target.checked)}
+              />
+              Custom Range
+            </label>
+
+            <button
+              onClick={downloadStatement}
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-black px-5 text-sm font-black text-white transition active:scale-[0.98] sm:flex-none"
+            >
+              <Download size={17} strokeWidth={1.7} />
+              Download Statement
+            </button>
+          </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[auto_1fr] lg:items-stretch">
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#F0F0F0] bg-white p-2 sm:w-fit sm:justify-start">
-            <button
-              onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
-              className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={20} strokeWidth={1.7} />
-            </button>
-            <div className="min-w-0 px-2 text-center sm:min-w-[210px]">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#71717A]">Statement</p>
-              <h2 className="truncate text-base font-black text-black">{format(selectedMonth, 'MMMM yyyy')}</h2>
+        {/* Inline Summary Bar with Month Stepper and Overview Stats */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-3">
+          {useCustomStatementRange ? (
+            <div className="min-w-0 rounded-2xl border border-[#F0F0F0] bg-white p-3 lg:w-[420px] lg:shrink-0">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#71717A]">Statement Range</p>
+              <div className="flex min-w-0 flex-row gap-2">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <label className="ml-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#71717A]">From</label>
+                  <input
+                    type="date"
+                    className="h-11 w-full min-w-0 rounded-xl border border-[#F0F0F0] bg-white px-3 text-xs font-bold text-black outline-none transition focus:border-black sm:text-sm"
+                    value={statementStartDate}
+                    onChange={(e) => handleStatementStartDateChange(e.target.value)}
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <label className="ml-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#71717A]">To</label>
+                  <input
+                    type="date"
+                    className="h-11 w-full min-w-0 rounded-xl border border-[#F0F0F0] bg-white px-3 text-xs font-bold text-black outline-none transition focus:border-black sm:text-sm"
+                    value={statementEndDate}
+                    min={statementStartDate || undefined}
+                    onChange={(e) => handleStatementEndDateChange(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-            <button
-              onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
-              className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
-              aria-label="Next month"
-            >
-              <ChevronRight size={20} strokeWidth={1.7} />
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2 rounded-2xl border border-[#F0F0F0] bg-white p-2 lg:w-fit lg:justify-start lg:shrink-0">
+              <button
+                onClick={() => setSelectedMonth(prev => startOfMonth(subMonths(prev, 1)))}
+                className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
+                aria-label="Previous month"
+              >
+                <ChevronLeft size={20} strokeWidth={1.7} />
+              </button>
+              <div className="min-w-0 px-3 text-center lg:min-w-[160px]">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#71717A]">Statement</p>
+                <h2 className="truncate text-base font-black text-black">{format(selectedMonth, 'MMMM yyyy')}</h2>
+              </div>
+              <button
+                onClick={() => setSelectedMonth(prev => startOfMonth(addMonths(prev, 1)))}
+                className="grid h-11 w-11 place-items-center rounded-xl border border-[#F0F0F0] text-black transition hover:border-[#0077FF] hover:text-[#0077FF]"
+                aria-label="Next month"
+              >
+                <ChevronRight size={20} strokeWidth={1.7} />
+              </button>
+            </div>
+          )}
 
-          <div className="grid grid-cols-3 gap-3">
+          {/* Overview Stats - Horizontal Row */}
+          <div className="grid grid-cols-3 gap-3 lg:flex-1">
             <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Income</p>
               <p className="mt-2 text-lg font-black text-emerald-600">{formatCurrency(summary.totalIncome)}</p>
@@ -245,12 +358,15 @@ export default function TransactionsPage({ user, onEdit }) {
             </div>
             <div className="rounded-2xl border border-[#F0F0F0] bg-white p-4">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Net</p>
-              <p className="mt-2 text-lg font-black text-black">{formatCurrency(summary.netBalance)}</p>
+              <p className={`mt-2 text-lg font-black ${summary.netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {formatCurrency(summary.netBalance)}
+              </p>
             </div>
           </div>
         </div>
       </header>
 
+      {/* Filter Section - Placed directly below Summary Bar */}
       <Card className="grid grid-cols-1 gap-4 border border-[#F0F0F0] bg-white p-4 md:grid-cols-2 lg:grid-cols-4 md:p-5">
         <div className="relative space-y-1">
           <label className="ml-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#71717A]">Search by Description</label>
@@ -283,8 +399,8 @@ export default function TransactionsPage({ user, onEdit }) {
           <input
             type="date"
             className="w-full rounded-2xl border border-[#F0F0F0] bg-white px-4 py-3 text-sm font-bold text-black outline-none transition focus:border-black"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            value={filterStartDate}
+            onChange={(e) => handleFilterStartDateChange(e.target.value)}
           />
         </div>
 
@@ -293,8 +409,9 @@ export default function TransactionsPage({ user, onEdit }) {
           <input
             type="date"
             className="w-full rounded-2xl border border-[#F0F0F0] bg-white px-4 py-3 text-sm font-bold text-black outline-none transition focus:border-black"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            value={filterEndDate}
+            min={filterStartDate || undefined}
+            onChange={(e) => handleFilterEndDateChange(e.target.value)}
           />
         </div>
       </Card>
